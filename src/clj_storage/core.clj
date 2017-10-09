@@ -35,7 +35,9 @@
   (delete! [e k]
     "Delete item based on primary id")
   (delete-all! [e]
-    "Delete all items from a coll")) 
+    "Delete all items from a coll")
+  (aggregate [e formula]
+    "Process data records and return computed results")) 
 
 (defrecord MemoryStore [data]
   Store

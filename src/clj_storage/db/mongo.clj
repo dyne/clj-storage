@@ -63,7 +63,10 @@
       (mc/remove-by-id mongo-db coll k)))
 
   (delete-all! [this]
-    (mc/remove mongo-db coll)))
+    (mc/remove mongo-db coll))
+
+  (aggregate [this formula]
+    (mc/aggregate mongo-db coll formula)))
 
 (defn create-mongo-store [mongo-db coll & params]
   (let [store (MongoStore. mongo-db coll)]
