@@ -25,7 +25,7 @@
   (:require [monger.collection :as mc]
             [monger.db :as mdb]
             [monger.core :as mongo]
-            [just-auth.db.storage :as storage :refer [Store]]))
+            [clj-storage.core :as storage :refer [Store]]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
   (let [db-and-conn (mongo/connect-via-uri mongo-uri)]
