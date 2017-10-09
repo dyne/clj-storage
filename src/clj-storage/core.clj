@@ -23,7 +23,6 @@
 
 (ns clj-storage.core)
 
-;; TODO duplicate from freecoin-lib. Extract storage lib?
 (defprotocol Store
   (store! [e k item]
     "Store item against the key k")
