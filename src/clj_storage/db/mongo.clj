@@ -70,7 +70,7 @@
 
 (defn create-mongo-store [mongo-db coll & params]
   (let [store (MongoStore. mongo-db coll)]
-    (when-let  [ttl-seconds (:expireAfterSeconds [params])]
+    (when-let  [ttl-seconds (apply :expireAfterSeconds params)]
       (mc/ensure-index mongo-db coll {:created-at 1}
                        {:expireAfterSeconds ttl-seconds}))
     store))
