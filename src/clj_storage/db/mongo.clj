@@ -82,4 +82,5 @@
    (map #(create-mongo-store db % params) store-names)))
 
 (defn empty-db-stores! [stores-m]
-  (map #(storage/delete-all! (% stores-m)) stores-m))
+  (doseq [col (vals stores-m)]
+    (storage/delete-all! col)))
