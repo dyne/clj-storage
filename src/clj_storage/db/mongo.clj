@@ -76,10 +76,12 @@
     store))
 
 (defn create-mongo-stores
-  [db store-names & params]
-  (zipmap
-   (map #(keyword %) store-names)
-   (map #(create-mongo-store db % params) store-names)))
+  [db name-param-m]
+  (reduce merge (map
+                 #(hash-map
+                   (-> % key keyword)
+                   (create-mongo-store db (key %) (val %)))
+                 name-param-m)))
 
 (defn empty-db-stores! [stores-m]
   (doseq [col (vals stores-m)]
