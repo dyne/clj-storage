@@ -20,6 +20,8 @@
                                                "store-with-ttl" {:expireAfterSeconds 30}}]
                              (create-mongo-stores (:db @db-and-conn)
                                                   name-param-m)
+                             ;; insert document so store is created
+                             (mcol/insert (:db @db-and-conn) "simple-store" {:title "some document"})
                              (db/get-collection-names (:db @db-and-conn)) => #{"simple-store"
                                                                                "store-with-ttl"}
                              (count (mcol/indexes-on (:db @db-and-conn) "simple-store")) => 1

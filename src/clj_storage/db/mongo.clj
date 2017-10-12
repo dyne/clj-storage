@@ -84,8 +84,7 @@
   [db name-param-m]
   (reduce merge (map
                  #(let [col-name (key %)
-                        params-m (val %)]
-                    (mcol/create db col-name {})
+                        params-m (val %)] 
                     (hash-map
                      (keyword col-name)
                      (create-mongo-store db col-name params-m)))
