@@ -81,9 +81,12 @@
 (defn create-mongo-stores
   [db name-param-m]
   (reduce merge (map
-                 #(hash-map
-                   (-> % key keyword)
-                   (create-mongo-store db (key %) (val %)))
+                 #(let [col-name (key %)
+                        params-m (val %)]
+                    (mcol/create db col-name {})
+                    (hash-map
+                     (keyword col-name)
+                     (create-mongo-store db col-name params-m)))
                  name-param-m)))
 
 (defn empty-db-stores! [stores-m]
