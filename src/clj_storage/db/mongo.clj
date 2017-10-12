@@ -23,8 +23,10 @@
 
 (ns clj-storage.db.mongo
   (:require [monger.collection :as mc]
-            [monger.db :as mdb]
-            [monger.core :as mongo]
+            [monger
+             [db :as mdb]
+             [core :as mongo]
+             [collection :as mcol]]
             [clj-storage.core :as storage :refer [Store]]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
