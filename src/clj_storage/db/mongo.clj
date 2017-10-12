@@ -68,12 +68,15 @@
   (aggregate [this formula]
     (mc/aggregate mongo-db coll formula)))
 
-(defn create-mongo-store [mongo-db coll & params]
-  (let [store (MongoStore. mongo-db coll)]
-    (when-let  [ttl-seconds (first (:expireAfterSeconds params))]
-      (mc/ensure-index mongo-db coll {:created-at 1}
-                       {:expireAfterSeconds ttl-seconds}))
-    store))
+(defn create-mongo-store
+  ([mongo-db coll]
+   (create-mongo-store mongo-db coll {}))
+  ([mongo-db coll {:keys [expireAfterSeconds]}]
+   (let [store (MongoStore. mongo-db coll)]
+     (when expireAfterSeconds 
+       (mc/ensure-index mongo-db coll {:created-at 1}
+                        {:expireAfterSeconds expireAfterSeconds}))
+     store)))
 
 (defn create-mongo-stores
   [db name-param-m]
