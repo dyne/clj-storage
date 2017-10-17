@@ -89,7 +89,3 @@
                      (keyword col-name)
                      (create-mongo-store db col-name params-m)))
                  name-param-m)))
-
-(defn empty-db-stores! [stores-m]
-  (doseq [col (vals stores-m)]
-    (storage/delete-all! col)))

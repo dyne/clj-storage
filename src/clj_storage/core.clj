@@ -73,3 +73,7 @@
   (zipmap
    (map #(keyword %) store-names)
    (repeat (count store-names) (create-memory-store))))
+
+(defn empty-db-stores! [stores-m]
+  (doseq [col (vals stores-m)]
+    (delete-all! col)))
