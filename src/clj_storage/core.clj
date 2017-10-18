@@ -30,6 +30,8 @@
     "Update the item found using key k by running the update-fn on it and storing it")
   (fetch [e k]
     "Retrieve item based on primary id")
+  (fetch-all [e]
+    "Reteieve all items")
   (query [e query]
     "Items are returned using a query map")
   (delete! [e k]
@@ -53,6 +55,8 @@
 
   (fetch [this k] (@data k))
 
+  (fetch-all [this] (deref data))
+  
   (query [this query]
     (filter #(= query (select-keys % (keys query))) (vals @data)))
 

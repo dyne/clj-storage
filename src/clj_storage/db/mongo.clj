@@ -56,6 +56,9 @@
       (-> (mc/find-map-by-id mongo-db coll k)
           (dissoc :_id))))
 
+  (fetch-all [this]
+    (mc/find-maps mongo-db coll))
+
   (query [this query]
     (->> (mc/find-maps mongo-db coll query)
          (map #(dissoc % :_id))))
