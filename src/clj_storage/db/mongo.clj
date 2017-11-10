@@ -46,7 +46,9 @@
         (dissoc :_id)))
 
   (update! [this k update-fn]
-    (when-let [item (mc/find-map-by-id mongo-db coll k)]
+    (when-let [item (if (map? k)
+                      (mc/find-one-as-map mongo-db coll k)
+                      (mc/find-map-by-id mongo-db coll k))]
       (let [updated-item (update-fn item)]
         (-> (mc/save-and-return mongo-db coll updated-item)
             (dissoc :_id)))))
