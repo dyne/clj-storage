@@ -6,28 +6,24 @@
              [collection :as mcol]]
             [clj-storage.db.mongo :refer [create-mongo-stores]]
             [clj-storage.core :as storage]
+            [clj-storage.test.db.test-db :as test-db]
             [taoensso.timbre :as log]))
-(def test-db-name "test-db")
-(defonce db-and-conn (atom nil))
-(defn setup-db [uri]
-  (->> (m/connect-via-uri uri) 
-       (reset! db-and-conn)))
 
-(against-background [(before :contents (setup-db (str "mongodb://localhost:27017/" test-db-name)))
-                     (after :contents (m/drop-db (:conn @db-and-conn) test-db-name))]
+(against-background [(before :contents (test-db/setup-db))
+                     (after :contents (test-db/teardown-db))]
 
                     (facts "Test the mongo stores creation"
                            (let [name-param-m {"simple-store" {}
                                                "transaction-store" {}
                                                "store-with-ttl" {:expireAfterSeconds 30}}
-                                 stores (create-mongo-stores (:db @db-and-conn)
+                                 stores (create-mongo-stores (test-db/get-test-db) 
                                                   name-param-m)]
                              ;; insert document so store is created
-                             (mcol/insert (:db @db-and-conn) "simple-store" {:title "some document"})
-                             (db/get-collection-names (:db @db-and-conn)) => #{"simple-store"
+                             (mcol/insert (test-db/get-test-db) "simple-store" {:title "some document"})
+                             (db/get-collection-names (test-db/get-test-db)) => #{"simple-store"
                                                                                "store-with-ttl"}
-                             (count (mcol/indexes-on (:db @db-and-conn) "simple-store")) => 1
-                             (count (mcol/indexes-on (:db @db-and-conn) "store-with-ttl")) => 2
+                             (count (mcol/indexes-on (test-db/get-test-db) "simple-store")) => 1
+                             (count (mcol/indexes-on (test-db/get-test-db) "store-with-ttl")) => 2
 
                              (fact "Test mongo updates" 
                                     (storage/store! (:transaction-store stores) :_id {:_id (rand-int 20000)
@@ -37,8 +33,8 @@
                                                                                       :tags []
                                                                                       :amount 1000
                                                                                       :transaction-id "1"}) => truthy
-                                    (-> (mcol/find-one-as-map (:db @db-and-conn) "transaction-store" {:transaction-id "1"}) (dissoc :_id)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "1"}
-                                    (let [item (mcol/find-one-as-map (:db @db-and-conn) "transaction-store" {:transaction-id "1"})
+                                    (-> (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"}) (dissoc :_id)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "1"}
+                                    (let [item (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"})
                                           updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
                                       (:amount updated-item) => 1001)
                                     (:amount (storage/update! (:transaction-store stores) {:transaction-id "1"} (fn [doc] (update doc :amount #(+ % 1))))) => 1001))))
