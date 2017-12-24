@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/clj-storage "0.4.0-SNAPSHOT"
+(defproject org.clojars.dyne/clj-storage "0.5.0-SNAPSHOT"
   :description "Minimal storage library"
   :url "https://github.com/PIENews/clj-storage"
 
@@ -15,7 +15,7 @@
                  ;; mongodb
                  [com.novemberain/monger "3.1.0"]]
 
-  :source-paths ["src"]
+  :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
   :profiles {:dev {:dependencies [[midje "1.8.3"]]
                    :plugins [[lein-midje "3.1.3"]]}})
