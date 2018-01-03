@@ -1,5 +1,7 @@
 # clj-storage - A no DB specific minimal storage lib
 
+[![Build Status](https://travis-ci.org/Commonfare-net/clj-storage.svg?branch=master)](https://travis-ci.org/Commonfare-net/clj-storage)
+
 ## License
 
 
