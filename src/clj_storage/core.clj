@@ -26,6 +26,8 @@
 (defprotocol Store
   (store! [e k item]
     "Store item against the key k")
+  (store-and-create-id! [e item]
+    "Store item and return with :_id created by mongo")
   (update! [e k update-fn]
     "Update the item found using key k by running the update-fn on it and storing it")
   (fetch [e k]
