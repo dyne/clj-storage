@@ -45,6 +45,9 @@
     (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))
         (dissoc :_id)))
 
+  (store-and-create-id! [this item]
+    (mc/insert-and-return mongo-db coll item))
+  
   (update! [this k update-fn]
     (when-let [item (if (map? k)
                       (mc/find-one-as-map mongo-db coll k)
