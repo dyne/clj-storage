@@ -44,7 +44,8 @@
                              ;; insert document so store is created
                              (mcol/insert (test-db/get-test-db) "simple-store" {:title "some document"})
                              (db/get-collection-names (test-db/get-test-db)) => #{"simple-store"
-                                                                               "store-with-ttl"}
+                                                                               "store-with-ttl"
+                                                                                  "system.indexes"}
                              (count (mcol/indexes-on (test-db/get-test-db) "simple-store")) => 1
                              (count (mcol/indexes-on (test-db/get-test-db) "store-with-ttl")) => 2
 
