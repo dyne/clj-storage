@@ -36,7 +36,7 @@
   (with-open [w (io/output-stream (getkey n k))]
     (nippy/freeze-to-out! (DataOutputStream. w) v)))
 
-(defn delete-files-recursively [fname & [silently]]
+(defn- delete-files-recursively [fname & [silently]]
   ;; safety measure
   (if (some #(= fname %) ["/" "/usr" "/home" "/lib" "/bin" "/sbin"
                           "/var" "/boot" "/mnt" "/srv" "/etc" "/media"])
@@ -48,6 +48,16 @@
               (clojure.java.io/delete-file file silently))]
       (delete-f (clojure.java.io/file fname)))))
   
+(defn- list-files-matching
+  "returns a sequence of files found in a directory whose names match
+  a regexp"
+  [directory regex]
+  (let [dir   (io/file directory)
+        files (file-seq dir)]
+    (remove nil?
+            (map #(let [f (.getName %)]
+                    (if (re-find regex f) %)) files))))
+
 (defrecord NippyFS [conf]
 
   ;; Configuration example:
@@ -66,13 +76,23 @@
 
   (fetch [this k] (readkey conf k))
 
-  ;; TODO: query
+  (query [this query]
+    (loop [[f & files]
+           ;; TODO: may add caching here for speed
+           (list-files-matching
+            (:path conf)
+            (java.util.regex.Pattern/compile query))
+           res []]
+      (let [entry 
+            (with-open [r (io/input-stream f)]
+              (nippy/thaw-from-in! (DataInputStream. r)))]
+        (if (empty? files) (if (nil? entry) res (conj res entry))
+            (recur  files (if (nil? entry) res (conj res entry)))))))
+    
+    (delete! [this k] (io/delete-file (getkey conf k)))
 
-  (delete! [this k] (io/delete-file (getkey conf k)))
-
-  (delete-all! [this]
-    (delete-files-recursively (:path conf)))
-  ;; TODO: delete-all! all keys and dir
+    (delete-all! [this]
+      (delete-files-recursively (:path conf)))
 
   ;; TODO: aggregate functions
 )
