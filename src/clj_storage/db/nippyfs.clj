@@ -10,9 +10,11 @@
 
 (ns clj-storage.db.nippyfs
   (:require
-   [clojure.java.io :as io]
+   [clojure.java.io :as io :refer
+    [file delete-file input-stream output-stream]]
+   [clojure.string :refer [blank?]]
    [clj-storage.core :refer [Store]]
-   [taoensso.nippy :as nippy])
+   [taoensso.nippy :as nippy :refer [freeze-to-out! thaw-from-in!]])
   (:import [java.io DataInputStream DataOutputStream]))
 
 ;; implements a simple filesystem based storage solution
@@ -21,22 +23,27 @@
 ;; keys (files) are stored and the nippy configuration.
 
 (defn- getkey [n k]
-  (let [prefix (:prefix k)
-        suffix (:suffix k)]
-  (str (:path n) "/"
-       (if (empty? prefix) "" prefix)
-       k ;; TODO: sanitise filename
-       (if (empty? suffix) "" suffix))))
+  {:pre [(coll? n) (string? k)]
+   :post [(string? %)]}
+  (let [prefix (:prefix n)
+        suffix (:suffix n)]
+    (str (:path n) "/"
+         (if (blank? prefix) "" prefix)
+         k ;; TODO: sanitise filename
+         (if (blank? suffix) "" suffix))))
 
 (defn- readkey [n k]
+  {:pre [(coll? n) (string? k)]}
   (with-open [r (io/input-stream (getkey n k))]
     (nippy/thaw-from-in! (DataInputStream. r))))
 
 (defn- writekey [n k v]
+  {:pre [(coll? n) (string? k) (some? v)]}
   (with-open [w (io/output-stream (getkey n k))]
     (nippy/freeze-to-out! (DataOutputStream. w) v)))
 
 (defn- delete-files-recursively [fname & [silently]]
+  {:pre [(string? fname)]}
   ;; safety measure
   (if (some #(= fname %) ["/" "/usr" "/home" "/lib" "/bin" "/sbin"
                           "/var" "/boot" "/mnt" "/srv" "/etc" "/media"])
@@ -45,13 +52,14 @@
               (when (.isDirectory file)
                 (doseq [child-file (.listFiles file)]
                   (delete-f child-file)))
-              (clojure.java.io/delete-file file silently))]
-      (delete-f (clojure.java.io/file fname)))))
-  
+              (io/delete-file file silently))]
+      (delete-f (io/file fname)))))
+
 (defn- list-files-matching
   "returns a sequence of files found in a directory whose names match
   a regexp"
   [directory regex]
+  {:pre [(string? directory) (some? regex)]}
   (let [dir   (io/file directory)
         files (file-seq dir)]
     (remove nil?
@@ -83,19 +91,19 @@
             (:path conf)
             (java.util.regex.Pattern/compile query))
            res []]
-      (let [entry 
+      (let [entry
             (with-open [r (io/input-stream f)]
               (nippy/thaw-from-in! (DataInputStream. r)))]
         (if (empty? files) (if (nil? entry) res (conj res entry))
             (recur  files (if (nil? entry) res (conj res entry)))))))
-    
-    (delete! [this k] (io/delete-file (getkey conf k)))
 
-    (delete-all! [this]
-      (delete-files-recursively (:path conf)))
+  (delete! [this k] (io/delete-file (getkey conf k)))
+
+  (delete-all! [this]
+    (delete-files-recursively (:path conf)))
 
   ;; TODO: aggregate functions
-)
+  )
 
 (defn create-nippy-store [conf]
   (io/make-parents (str (:path conf) "/make-parents"))
