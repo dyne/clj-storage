@@ -1,27 +1,51 @@
-# clj-storage - A no DB specific minimal storage lib
+# clj-storage - minimal abstract database storage lib
+
+<a href="https://www.dyne.org"><img
+	src="https://secrets.dyne.org/static/img/swbydyne.png"
+		alt="software by Dyne.org"
+			title="software by Dyne.org" class="pull-right"></a>
 
 [![Build Status](https://travis-ci.org/Commonfare-net/clj-storage.svg?branch=master)](https://travis-ci.org/Commonfare-net/clj-storage)
 
+This library is a minimalist clojure protocol abstraction over
+document databases. The only implementation so far is MongoDB, but can
+be extended in the future as needed. The main goal is to make it
+possible for server-side applications using this library to change the
+storage database without changing their code.
+
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.dyne/clj-storage.svg)](https://clojars.org/org.clojars.dyne/clj-storage)
+
+Here below is the abstract protocol with all functions that may be implemented to support a database implementation:
+
+```clj
+(defprotocol Store
+  (store! [e k item]
+    "Store item against the key k")
+  (store-and-create-id! [e item]
+    "Store item and return with :_id created by db")
+  (update! [e k update-fn]
+    "Update the item found using key k by running the update-fn on it and storing it")
+  (fetch [e k]
+    "Retrieve item based on primary id")
+  (query [e query]
+    "Items are returned using a query map")
+  (delete! [e k]
+    "Delete item based on primary id")
+  (delete-all! [e]
+    "Delete all items from a coll")
+  (aggregate [e formula]
+    "Process data records and return computed results")) 
+```
+
+
 ## License
 
+This Free and Open Source research and development activity is funded
+by the European Commission in the context of Collective Awareness
+Platforms for Sustainability and Social Innovation (CAPSSI) grant nr.687922.
 
-This Free and Open Source research and development activity is funded by the European Commission in the context of Collective Awareness Platforms for Sustainability and Social Innovation (CAPSSI) grants nr.610349 and nr.687922.
+The clj-storage library is Copyright (C) 2017-2018 by the Dyne.org Foundation, Amsterdam
 
-The just auth lib is Copyright (C) 2017 by the Dyne.org Foundation, Amsterdam
+Designed, written and maintained by Aspasia Beneti <aspra@dyne.org>
 
-The development is lead by Aspasia Beneti <aspra@dyne.org>
-
-```
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-```
+Distributed under the Eclipse Public License either version 1.0 or (at your option) any later version.
