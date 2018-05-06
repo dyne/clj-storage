@@ -13,7 +13,11 @@
                  [com.taoensso/timbre "4.10.0"]
 
                  ;; mongodb
-                 [com.novemberain/monger "3.1.0"]]
+                 [org.clojars.dyne/monger "3.2.0-SNAPSHOT"]
+
+                 ;; file storage
+                 [com.taoensso/nippy "2.13.0"]
+]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
