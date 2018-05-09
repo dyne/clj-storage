@@ -44,8 +44,12 @@
                              ;; insert document so store is created
                              (mcol/insert (test-db/get-test-db) "simple-store" {:title "some document"})
                              (db/get-collection-names (test-db/get-test-db)) => #{"simple-store"
-                                                                               "store-with-ttl"
-                                                                                  "system.indexes"}
+                                                                                  "store-with-ttl"}
+                             ;; list-index is not part of the collection names since Mongo 3.07 ; related commit https://github.com/mongodb/mongo/commit/fa24b6adab2f71a3c07d8810d04d5e0da4c5ac59
+                             (m/command (test-db/get-test-db) {:listIndexes "simple-store"}) => {"cursor" {"id" 0, "ns" "test-db.$cmd.listIndexes.simple-store", "firstBatch" [{"v" 2, "key" {"_id" 1}, "name" "_id_", "ns" "test-db.simple-store"}]}, "ok" 1.0}
+
+                             (m/command (test-db/get-test-db) {:listIndexes "store-with-ttl"}) => {"cursor" {"id" 0, "ns" "test-db.$cmd.listIndexes.store-with-ttl", "firstBatch" [{"v" 2, "key" {"_id" 1}, "name" "_id_", "ns" "test-db.store-with-ttl"} {"v" 2, "key" {"created-at" 1}, "name" "created-at_1", "ns" "test-db.store-with-ttl", "expireAfterSeconds" 30}]}, "ok" 1.0}
+                             
                              (count (mcol/indexes-on (test-db/get-test-db) "simple-store")) => 1
                              (count (mcol/indexes-on (test-db/get-test-db) "store-with-ttl")) => 2
 
