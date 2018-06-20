@@ -68,7 +68,7 @@
 
   (count-since [this date-time formula]
     ;; TODO: date time add
-    (count (filter #(= query (select-keys % (keys query))) (vals @data)))))
+    (count (filter #(= formula (select-keys % (keys formula))) (vals @data)))))
 
 (defn create-memory-store
   "Create a memory store"
