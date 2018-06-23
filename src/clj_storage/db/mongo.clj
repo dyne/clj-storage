@@ -27,7 +27,9 @@
              [db :as mdb]
              [core :as mongo]
              [collection :as mcol]]
-            [clj-storage.core :as storage :refer [Store]]))
+            [monger.operators :refer [$gt]]
+            [clj-storage.core :as storage :refer [Store]]
+            [taoensso.timbre :as log]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
   (let [db-and-conn (mongo/connect-via-uri mongo-uri)]
@@ -73,8 +75,12 @@
     (mc/remove mongo-db coll))
 
   (aggregate [this formula]
-    (mc/aggregate mongo-db coll formula)))
+    (mc/aggregate mongo-db coll formula))
 
+  (count-since [this from-date-time formula]
+    (let [dt-condition {:created-at {$gt from-date-time}}]
+      (mc/count (:mongo-db this) coll (merge formula
+                                             dt-condition)))))
 (defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
