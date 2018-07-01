@@ -34,7 +34,9 @@ Here below is the abstract protocol with all functions that may be implemented t
   (delete-all! [e]
     "Delete all items from a coll")
   (aggregate [e formula]
-    "Process data records and return computed results")) 
+    "Process data records and return computed results")
+  (count-since [e date-time formula]
+    "Count the number of records that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field."))    
 ```
 
 
