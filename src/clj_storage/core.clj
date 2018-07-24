@@ -34,6 +34,8 @@
     "Retrieve item based on primary id")
   (query [e query]
     "Items are returned using a query map")
+  (list-per-page [e query page per-page]
+    "List all items in a collection using pagination. Per page is the number of items per page and page is the number of page. Items are sorted by _id")
   (delete! [e k]
     "Delete item based on primary id")
   (delete-all! [e]
