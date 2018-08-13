@@ -43,7 +43,9 @@
   (aggregate [e formula]
     "Process data records and return computed results")
   (count-since [e date-time formula]
-    "Count the number of records that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field.")) 
+    "Count the number of documents that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field.")
+  (count* [e params]
+    "Count the number of documents after applying a formula. {} for an empty formula.")) 
 
 (defrecord MemoryStore [data]
   Store

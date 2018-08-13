@@ -89,8 +89,12 @@
 
   (count-since [this from-date-time formula]
     (let [dt-condition {:created-at {$gt from-date-time}}]
-      (mc/count (:mongo-db this) coll (merge formula
-                                             dt-condition)))))
+      (mc/count mongo-db coll (merge formula
+                                     dt-condition))))
+
+  (count* [this formula]
+    (mc/count mongo-db coll formula)))
+
 (defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
