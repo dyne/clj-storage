@@ -26,7 +26,8 @@
             [monger
              [db :as mdb]
              [core :as mongo]
-             [collection :as mcol]]
+             [collection :as mcol]
+             [query :as mq]]
             [monger.operators :refer [$gt]]
             [clj-storage.core :as storage :refer [Store]]
             [taoensso.timbre :as log]))
@@ -67,6 +68,15 @@
     (->> (mc/find-maps mongo-db coll query)
          (map #(dissoc % :_id))))
 
+  (list-per-page [this query page per-page]
+    (vec (map
+          ;; TODO: can this be done by the monger query lib?
+          #(dissoc % :_id)
+          (mq/with-collection mongo-db coll
+            (mq/find query)
+            (mq/sort {:timestamp -1})
+            (mq/paginate :page page :per-page per-page)))))
+  
   (delete! [this k]
     (when k
       (mc/remove-by-id mongo-db coll k)))
@@ -79,8 +89,12 @@
 
   (count-since [this from-date-time formula]
     (let [dt-condition {:created-at {$gt from-date-time}}]
-      (mc/count (:mongo-db this) coll (merge formula
-                                             dt-condition)))))
+      (mc/count mongo-db coll (merge formula
+                                     dt-condition))))
+
+  (count* [this formula]
+    (mc/count mongo-db coll formula)))
+
 (defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
