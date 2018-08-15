@@ -53,7 +53,7 @@
                              (count (mcol/indexes-on (test-db/get-test-db) "simple-store")) => 1
                              (count (mcol/indexes-on (test-db/get-test-db) "store-with-ttl")) => 2
 
-                             (fact "Test mongo updates" 
+                             (fact "Test mongo updates." 
                                     (storage/store! (:transaction-store stores) :_id {:_id (rand-int 20000)
                                                                                       :currency :mongo
                                                                                       :from-id "an-account"
@@ -65,4 +65,15 @@
                                     (let [item (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"})
                                           updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
                                       (:amount updated-item) => 1001)
-                                    (:amount (storage/update! (:transaction-store stores) {:transaction-id "1"} (fn [doc] (update doc :amount #(+ % 1))))) => 1001))))
+                                    (:amount (storage/update! (:transaction-store stores) {:transaction-id "1"} (fn [doc] (update doc :amount #(+ % 1))))) => 1001)
+
+                             (fact "Test total count."
+                                   (storage/count* (:transaction-store stores) {}) => 1
+                                   (storage/store! (:transaction-store stores) :_id {:_id (rand-int 20000)
+                                                                                      :currency :mongo
+                                                                                      :from-id "yet-an-account"
+                                                                                      :to-id "another-account"
+                                                                                      :tags []
+                                                                                      :amount 1000
+                                                                                     :transaction-id "2"})
+                                   (storage/count* (:transaction-store stores) {}) => 2))))
