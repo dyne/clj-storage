@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/clj-storage "0.7.0"
+(defproject org.clojars.dyne/clj-storage "0.8.0-SNAPSHOT"
   :description "Minimal storage library"
   :url "https://github.com/PIENews/clj-storage"
 
