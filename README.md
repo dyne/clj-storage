@@ -29,6 +29,8 @@ Here below is the abstract protocol with all functions that may be implemented t
     "Retrieve item based on primary id")
   (query [e query]
     "Items are returned using a query map")
+  (list-per-page [e query page per-page]
+    "List all items in a collection using pagination. Per page is the number of items per page and page is the number of page. Items are sorted by _id")
   (delete! [e k]
     "Delete item based on primary id")
   (delete-all! [e]
@@ -36,7 +38,9 @@ Here below is the abstract protocol with all functions that may be implemented t
   (aggregate [e formula]
     "Process data records and return computed results")
   (count-since [e date-time formula]
-    "Count the number of records that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field."))    
+    "Count the number of documents that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field.")
+  (count* [e params]
+    "Count the number of documents after applying a formula. {} for an empty formula."))   
 ```
 
 

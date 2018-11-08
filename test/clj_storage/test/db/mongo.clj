@@ -60,8 +60,9 @@
                                                                                       :to-id "another-account"
                                                                                       :tags []
                                                                                       :amount 1000
+                                                                                      :timestamp (new java.util.Date) 
                                                                                       :transaction-id "1"}) => truthy
-                                    (-> (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"}) (dissoc :_id)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "1"}
+                                    (-> (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"}) (dissoc :_id :timestamp)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "1"}
                                     (let [item (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"})
                                           updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
                                       (:amount updated-item) => 1001)
@@ -70,10 +71,18 @@
                              (fact "Test total count."
                                    (storage/count* (:transaction-store stores) {}) => 1
                                    (storage/store! (:transaction-store stores) :_id {:_id (rand-int 20000)
-                                                                                      :currency :mongo
-                                                                                      :from-id "yet-an-account"
-                                                                                      :to-id "another-account"
-                                                                                      :tags []
-                                                                                      :amount 1000
+                                                                                     :currency :mongo
+                                                                                     :from-id "yet-an-account"
+                                                                                     :to-id "another-account"
+                                                                                     :tags []
+                                                                                     :amount 1000
+                                                                                     :timestamp (new java.util.Date)
                                                                                      :transaction-id "2"})
-                                   (storage/count* (:transaction-store stores) {}) => 2))))
+                                   (storage/count* (:transaction-store stores) {}) => 2)
+
+                             (fact "Test that date time filtering works."
+                                   (let [now (new java.util.Date)]
+                                     (storage/count* (:transaction-store stores) {}) => 2
+                                     (-> (storage/list-per-page (:transaction-store stores) {} 1 100) first :timestamp) => truthy
+                                     (storage/count* (:transaction-store stores) {:timestamp {"$gt" now}}) => 0
+                                     (storage/count* (:transaction-store stores) {:timestamp {"$lt" now}}) => 2)))))
