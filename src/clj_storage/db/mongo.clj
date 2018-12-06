@@ -98,11 +98,13 @@
 (defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
-  ([mongo-db coll {:keys [expireAfterSeconds]}]
+  ([mongo-db coll {:keys [expireAfterSeconds index]}]
    (let [store (MongoStore. mongo-db coll)]
      (when expireAfterSeconds 
        (mc/ensure-index mongo-db coll {:created-at 1}
                         {:expireAfterSeconds expireAfterSeconds}))
+     (when index
+       (mc/ensure-index mongo-db coll (str coll)))
      store)))
 
 (defn create-mongo-stores
