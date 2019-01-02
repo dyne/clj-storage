@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/clj-storage "0.8.0"
+(defproject org.clojars.dyne/clj-storage "0.9.0"
   :description "Minimal storage library"
   :url "https://github.com/PIENews/clj-storage"
 
@@ -7,7 +7,7 @@
             :year 2017
             :key "gpl-3.0"}
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.9.0"]
 
                  ;; logs
                  [com.taoensso/timbre "4.10.0"]
@@ -16,10 +16,10 @@
                  [org.clojars.dyne/monger "3.2.0-SNAPSHOT"]
 
                  ;; file storage
-                 [com.taoensso/nippy "2.13.0"]
+                 [com.taoensso/nippy "2.14.0"]
 ]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
-  :profiles {:dev {:dependencies [[midje "1.8.3"]]
+  :profiles {:dev {:dependencies [[midje "1.9.4"]]
                    :plugins [[lein-midje "3.1.3"]]}})
