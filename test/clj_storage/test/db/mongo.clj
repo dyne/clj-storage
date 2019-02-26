@@ -27,7 +27,7 @@
              [core :as m]
              [db :as db]
              [collection :as mcol]]
-            [clj-storage.db.mongo :refer [create-mongo-stores]]
+            [clj-storage.db.mongo :refer [create-mongo-stores drop-db]]
             [clj-storage.core :as storage]
             [clj-storage.test.db.test-db :as test-db]
             [taoensso.timbre :as log]))
