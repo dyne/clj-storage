@@ -31,7 +31,7 @@
 (def test-db-name "test-db")
 (def test-db-uri (format "mongodb://localhost:27017/%s" test-db-name))
 
-(def db-and-conn (atom nil))
+(def db-and-conn (atom {}))
 
 (defn get-test-db []
   (:db @db-and-conn))
@@ -42,12 +42,11 @@
 (defn setup-db []
   (log/debug "Setting up test DB")
   (->> (m/get-mongo-db-and-conn test-db-uri)
-       (log/spy)
        (m/drop-db)
        (reset! db-and-conn)))
 
 (defn teardown-db []
-  (log/debug "Tearing down test DB")
+  (log/debug "Tearing down test DB " @db-and-conn)
   (m/drop-db @db-and-conn)
   (m/disconnect (get-test-db-connection))
   (reset! db-and-conn nil))
