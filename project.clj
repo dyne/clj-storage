@@ -7,7 +7,11 @@
             :year 2017
             :key "gpl-3.0"}
 
-  :dependencies [[org.clojure/clojure "1.9.0"]
+  ;; fix for jdk 10
+  :managed-dependencies [[org.clojure/core.rrb-vector "0.0.14"]
+                       [org.flatland/ordered "1.5.7"]]
+
+  :dependencies [[org.clojure/clojure "1.10.0"]
 
                  ;; logs
                  [com.taoensso/timbre "4.10.0"]
@@ -21,5 +25,5 @@
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
-  :profiles {:dev {:dependencies [[midje "1.9.4"]]
+  :profiles {:dev {:dependencies [[midje "1.9.6"]]
                    :plugins [[lein-midje "3.1.3"]]}})

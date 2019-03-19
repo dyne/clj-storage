@@ -9,9 +9,8 @@ before_script:
   - mongo --version
 script: lein midje
 jdk:
-  - openjdk7
-  - oraclejdk8
   - openjdk8
-  - oraclejdk9
+  - openjdk9
+  - openjdk10
 services:
   - mongodb
