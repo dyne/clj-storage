@@ -10,7 +10,8 @@ before_script:
 script: lein midje
 jdk:
   - openjdk7
-  - oraclejdk7
-  - oraclejdk8
+  - openjdk8
+  - openjdk9
+  - openjdk10
 services:
   - mongodb
