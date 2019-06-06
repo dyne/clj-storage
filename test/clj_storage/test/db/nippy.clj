@@ -1,8 +1,7 @@
 (ns clj-storage.test.db.nippy
-  (:require [midje.sweet :refer :all]
-            [clj-storage.core :refer :all]
-            [clj-storage.db.nippyfs :refer :all]
-            [taoensso.nippy :as nippy]
+  (:require [midje.sweet :refer [fact =>]]
+            [clj-storage.core :refer [store! fetch update! delete! query  delete-all!]]
+            [clj-storage.db.nippyfs :refer [create-nippy-store]]
             [taoensso.timbre :as log]))
 
 (def nip (create-nippy-store {:path "/tmp/clj-storage-test-nippyfs"

@@ -22,7 +22,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns clj-storage.test.db.mongo
-  (:require [midje.sweet :refer :all]
+  (:require [midje.sweet :refer [against-background before after facts fact => truthy]]
             [monger
              [core :as m]
              [db :as db]
