@@ -25,13 +25,13 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns clj-storage.test.db.test-db
-  (:require [monger.core :as monger]
+  (:require [clj-storage.db.mongo :as m]
             [taoensso.timbre :as log]))
 
 (def test-db-name "test-db")
 (def test-db-uri (format "mongodb://localhost:27017/%s" test-db-name))
 
-(def db-and-conn (atom nil))
+(def db-and-conn (atom {}))
 
 (defn get-test-db []
   (:db @db-and-conn))
@@ -39,18 +39,14 @@
 (defn get-test-db-connection []
   (:conn @db-and-conn))
 
-(defn- drop-db [db-and-conn]
-  (monger/drop-db (:conn db-and-conn) test-db-name)
-  db-and-conn)
-
 (defn setup-db []
   (log/debug "Setting up test DB")
-  (->> (monger/connect-via-uri test-db-uri)
-       drop-db
+  (->> (m/get-mongo-db-and-conn test-db-uri)
+       (m/drop-db)
        (reset! db-and-conn)))
 
 (defn teardown-db []
-  (log/debug "Tearing down test DB")
-  (drop-db @db-and-conn)
-  (monger/disconnect (get-test-db-connection))
+  (log/debug "Tearing down test DB " @db-and-conn)
+  (m/drop-db @db-and-conn)
+  (m/disconnect (get-test-db-connection))
   (reset! db-and-conn nil))
