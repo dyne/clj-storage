@@ -40,7 +40,11 @@
   (:db (get-mongo-db-and-conn mongo-uri)))
 
 (defn disconnect [db]
-  (if (not (empty? db)) (mongo/disconnect db)))
+  (mongo/disconnect db))
+
+(defn drop-db [db-and-conn]
+  (mongo/drop-db (:conn db-and-conn) (-> db-and-conn :db .getName))
+  db-and-conn)
 
 (defrecord MongoStore [mongo-db coll]
   Store
