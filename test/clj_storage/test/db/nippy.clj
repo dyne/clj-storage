@@ -1,5 +1,5 @@
 (ns clj-storage.test.db.nippy
-  (:require [midje.sweet :refer [fact =>]]
+  (:require [midje.sweet :refer [fact => throws]]
             [clj-storage.core :refer [store! fetch update! delete! query  delete-all!]]
             [clj-storage.db.nippyfs :refer [create-nippy-store]]
             [taoensso.timbre :as log]))
@@ -16,9 +16,10 @@
             (fetch   nip "stress-data") => stress-data
             (update! nip "stress-data" last)
             (fetch   nip "stress-data") => [:a :b]
-            (delete! nip "stress-data")            
-            ;;      (delete! nip "stress-data")
-            )
+            (delete! nip "stress-data")
+            ;; TODO: is this what we want? Or maybe failjure???
+            (fetch nip "stress-data") => (throws java.io.FileNotFoundException)
+            (delete! nip "stress-data") => (throws java.io.IOException))
 
       (fact "query over a few entries"
             (store! nip "query-test-chosen-one" stress-data)
@@ -28,7 +29,5 @@
             (store! nip "query-test-chosen-five" stress-data)
             (query nip "-chosen-") => [[[{:a 1, :b 2, :c 3} {:a 4, :b 5, :c {:z 7, :y 9}}] [:a :b]]
                                        [[{:a 1, :b 2, :c 3} {:a 4, :b 5, :c {:z 7, :y 9}}] [:a :b]]
-                                       [[{:a 1, :b 2, :c 3} {:a 4, :b 5, :c {:z 7, :y 9}}] [:a :b]]]
-            )
-      (delete-all! nip)
-      )
+                                       [[{:a 1, :b 2, :c 3} {:a 4, :b 5, :c {:z 7, :y 9}}] [:a :b]]])
+      (delete-all! nip))

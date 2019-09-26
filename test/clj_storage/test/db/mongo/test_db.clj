@@ -24,7 +24,7 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns clj-storage.test.db.test-db
+(ns clj-storage.test.db.mongo.test-db
   (:require [clj-storage.db.mongo :as m]
             [taoensso.timbre :as log]))
 

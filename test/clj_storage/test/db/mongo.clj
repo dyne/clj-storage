@@ -29,7 +29,7 @@
              [collection :as mcol]]
             [clj-storage.db.mongo :refer [create-mongo-stores drop-db]]
             [clj-storage.core :as storage]
-            [clj-storage.test.db.test-db :as test-db]
+            [clj-storage.test.db.mongo.test-db :as test-db]
             [taoensso.timbre :as log]))
 
 (against-background [(before :contents (test-db/setup-db))
@@ -44,9 +44,10 @@
                                  stores (create-mongo-stores (test-db/get-test-db) 
                                                   name-param-m)]
                              ;; insert document so store is created
-                             (mcol/insert (test-db/get-test-db) "simple-store" {:title "some document"})
+                             (storage/store-and-create-id! (:simple-store stores) {:title "some document"})
                              (db/get-collection-names (test-db/get-test-db)) => #{"simple-store"
-                                                                                  "store-with-ttl", "store-with-index"}
+                                                                                  "store-with-ttl",
+                                                                                  "store-with-index"}
                              ;; list-index is not part of the collection names since Mongo 3.07 ; related commit https://github.com/mongodb/mongo/commit/fa24b6adab2f71a3c07d8810d04d5e0da4c5ac59
                              (m/command (test-db/get-test-db) {:listIndexes "simple-store"}) => {"cursor" {"id" 0, "ns" "test-db.$cmd.listIndexes.simple-store", "firstBatch" [{"v" 2, "key" {"_id" 1}, "name" "_id_", "ns" "test-db.simple-store"}]}, "ok" 1.0}
 
@@ -69,8 +70,11 @@
                                                                                       :amount 1000
                                                                                       :timestamp (new java.util.Date) 
                                                                                       :transaction-id "1"}) => truthy
-                                    (-> (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"}) (dissoc :_id :timestamp)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "1"}
-                                    (let [item (mcol/find-one-as-map (test-db/get-test-db) "transaction-store" {:transaction-id "1"})
+                                    (-> (storage/query (:transaction-store stores) {:transaction-id "1"})
+                                        first
+                                        (dissoc :_id :timestamp)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "1"}
+                                    
+                                    (let [item (first (storage/query (:transaction-store stores) {:transaction-id "1"}))
                                           updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
                                       (:amount updated-item) => 1001)
                                     (:amount (storage/update! (:transaction-store stores) {:transaction-id "1"} (fn [doc] (update doc :amount #(+ % 1))))) => 1001)
