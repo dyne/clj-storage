@@ -17,7 +17,9 @@
 
                  ;; file storage
                  [com.taoensso/nippy "2.14.0"]
-]
+
+                 ;; redis
+                 [com.taoensso/carmine "2.19.1"]]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
