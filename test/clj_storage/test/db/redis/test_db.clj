@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017- Dyne.org foundation
+;; Copyright (C) 2019- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti <aspra@dyne.org>
@@ -21,12 +21,13 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns clj-storage.test.db.mongo.test-db
-  (:require [clj-storage.db.mongo :as m]
+(ns clj-storage.test.db.redis.test-db
+  (:require [taoensso.carmine :as car :refer (wcar)]
             [taoensso.timbre :as log]))
 
-(def test-db-name "test-db")
-(def test-db-uri (format "mongodb://localhost:27017/%s" test-db-name))
+(def uri "redis://127.0.0.1:6379")
+(def server1-conn {:pool {} :spec {:uri uri}})
+(defmacro wcar* [& body] `(car/wcar server1-conn ~@body))
 
 (def db-and-conn (atom {}))
 
@@ -37,12 +38,13 @@
   (:conn @db-and-conn))
 
 (defn setup-db []
-  (log/debug "Setting up test DB")
-  (->> (m/get-mongo-db-and-conn test-db-uri)
+  (log/debug "Setting up REDIS test DB")
+  (wcar* (car/ping))
+  #_(->> (m/get-mongo-db-and-conn test-db-uri)
        (m/drop-db)
        (reset! db-and-conn)))
 
-(defn teardown-db []
+#_(defn teardown-db []
   (log/debug "Tearing down test DB " @db-and-conn)
   (m/drop-db @db-and-conn)
   (m/disconnect (get-test-db-connection))

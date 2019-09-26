@@ -1,5 +1,5 @@
 (defproject org.clojars.dyne/clj-storage "0.11.0-SNAPSHOT"
-  :description "Minimal storage library"
+  :description "Minimal storage library based on an abstraction which helps seamlessly switching between DBs"
   :url "https://github.com/PIENews/clj-storage"
 
   :license {:author "Dyne.org Foundation"
@@ -17,7 +17,9 @@
 
                  ;; file storage
                  [com.taoensso/nippy "2.14.0"]
-]
+
+                 ;; redis
+                 [com.taoensso/carmine "2.19.1"]]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]

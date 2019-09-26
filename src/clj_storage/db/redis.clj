@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2019- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -21,50 +21,29 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns clj-storage.db.mongo
-  (:require [monger.collection :as mc]
-            [monger
-             [core :as mongo]
-             [collection :as mcol]
-             [query :as mq]]
-            [monger.operators :refer [$gt]]
+(ns clj-storage.db.redis
+  (:require [taoensso.carmine :as car :refer (wcar)]
             [clj-storage.core :as storage :refer [Store]]
-            [clojure.spec.alpha :as spec]
             [taoensso.timbre :as log]))
 
-(defn get-mongo-db-and-conn [mongo-uri]
-  (let [db-and-conn (mongo/connect-via-uri mongo-uri)]
-    db-and-conn))
-
-(defn get-mongo-db [mongo-uri]
-  (:db (get-mongo-db-and-conn mongo-uri)))
-
-(defn disconnect [db]
-  (mongo/disconnect db))
-
-(defn drop-db [db-and-conn]
-  (mongo/drop-db (:conn db-and-conn) (-> db-and-conn :db .getName))
-  db-and-conn)
-
-(defrecord MongoStore [mongo-db coll]
+(defrecord RedisStore [mongo-db coll]
   Store
-  (store! [this item params]
-    {:pre [(spec/valid? :: person)]
-     :post [(spec/valid? map? %)]}
-    (if-let [id (:id params)]
-      (-> (mc/insert-and-return mongo-db coll (assoc item :_id (id item)))
-          (dissoc :_id))
-      (mc/insert-and-return mongo-db coll item)))
+  (store! [this k item]
+    (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))
+        (dissoc :_id)))
+
+  (store-and-create-id! [this item]
+    (mc/insert-and-return mongo-db coll item))
   
-  (update! [this update-fn params]
-    (when-let [item (if (map? (:id params))
-                      (mc/find-one-as-map mongo-db coll (:id params))
-                      (mc/find-map-by-id mongo-db coll (:id params)))]
+  (update! [this k update-fn]
+    (when-let [item (if (map? k)
+                      (mc/find-one-as-map mongo-db coll k)
+                      (mc/find-map-by-id mongo-db coll k))]
       (let [updated-item (update-fn item)]
         (-> (mc/save-and-return mongo-db coll updated-item)
             (dissoc :_id)))))
 
-  #_(fetch [this k]
+  (fetch [this k]
     (when k
       (-> (mc/find-map-by-id mongo-db coll k)
           (dissoc :_id))))

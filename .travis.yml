@@ -13,6 +13,5 @@ jdk:
   - oraclejdk8
   - openjdk8
   - oraclejdk9
-  - oraclejdk11
 services:
   - mongodb
