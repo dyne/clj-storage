@@ -24,28 +24,16 @@
 (ns clj-storage.core)
 
 (defprotocol Store
-  (store! [e k item]
-    "Store item against the key k")
-  (store-and-create-id! [e item]
-    "Store item and return with :_id created by mongo")
-  (update! [e k update-fn]
-    "Update the item found using key k by running the update-fn on it and storing it")
-  (fetch [e k]
-    "Retrieve item based on primary id")
-  (query [e query]
+  (store! [s item params]
+    "Store an item to storage s with params ")
+  (update! [s update-fn]
+    "Update the item found by running the update-fn on it and storing it")
+  (query [s query params]
     "Items are returned using a query map")
-  (list-per-page [e query page per-page]
-    "List all items in a collection using pagination. Per page is the number of items per page and page is the number of page. Items are sorted by _id")
-  (delete! [e k]
-    "Delete item based on primary id")
-  (delete-all! [e]
-    "Delete all items from a coll")
-  (aggregate [e formula]
-    "Process data records and return computed results")
-  (count-since [e date-time formula]
-    "Count the number of documents that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field.")
-  (count* [e params]
-    "Count the number of documents after applying a formula. {} for an empty formula.")) 
+  (delete! [s params]
+    "Delete item(s) from a storage s")
+  (aggregate [e formula params]
+    "Process data aggragate and return computed results")) 
 
 (defrecord MemoryStore [data]
   Store
