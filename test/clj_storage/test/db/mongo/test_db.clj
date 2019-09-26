@@ -1,15 +1,12 @@
-;; Freecoin - digital social currency toolkit
+;; clj-storage - Minimal storage library based on an abstraction which helps seamlessly switching between DBs
 
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti <aspra@dyne.org>
-
-;; With contributions by
-;; Duncan Mortimer <dmortime@thoughtworks.com>
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU Affero General Public License as published by

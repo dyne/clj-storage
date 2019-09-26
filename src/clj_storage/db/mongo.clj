@@ -1,4 +1,4 @@
-;; clj-storage - a minimal storage library
+;; clj-storage - Minimal storage library based on an abstraction which helps seamlessly switching between DBs
 
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
