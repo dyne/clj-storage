@@ -26,7 +26,7 @@
             [clj-storage.core :as storage :refer [Store]]
             [taoensso.timbre :as log]))
 
-(defrecord MongoStore [mongo-db coll]
+(defrecord RedisStore [mongo-db coll]
   Store
   (store! [this k item]
     (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))

@@ -25,8 +25,8 @@
 
 (defprotocol Store
   (store! [s item params]
-    "Store an item to storage s with params ")
-  (update! [s update-fn]
+    "Store an item to storage s with params")
+  (update! [s update-fn params]
     "Update the item found by running the update-fn on it and storing it")
   (query [s query params]
     "Items are returned using a query map")

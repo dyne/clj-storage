@@ -24,7 +24,22 @@
 (ns clj-storage.spec
   (:require [clojure.spec.alpha :as spec]))
 
-(spec/def :clj-storage.core/pagination-params (spec/keys ::page ::per-page))
-(spec/def :clj-storage.db.redis/base-params (spec/keys ::k))
-(spec/def :aggregate-type  #{::count})
-(spec/def :clj-storage.core/aggregate-params (spec/keys ::aggregate-type ::since))
+;; TODO: extract config
+(def MAX-PER-PAGE 100)
+
+(spec/def ::k string?)
+(spec/def :clj-storage.db.redis/base-params (spec/keys :req [::k]))
+
+(spec/def ::id string?)
+(spec/def ::item map?)
+(spec/def :clj-storage.db.mongo/store-params (spec/keys :opt [::id]))
+(spec/def :clj-storage.db.mongo/store (spec/keys :req [::store ::item :clj-storage.db.mongo/store-params]))
+#_(spec/def ::col string?)
+#_(spec/def ::mongodb map?)
+#_(spec/def :clj-storage.db.mongo/base-params (spec/keys :req [::mongo-db ::col]))
+
+#_(spec/def :aggregate-type  #{::count})
+#_(spec/def :clj-storage.core/aggregate-params (spec/keys ::aggregate-type ::since))
+#_(spec/def ::page (spec/int-in 0 Integer/max))
+#_(spec/def ::per-page (spec/int-in 1 MAX-PER-PAGE))
+#_(spec/def :clj-storage.core/pagination-params (spec/keys ::page ::per-page))

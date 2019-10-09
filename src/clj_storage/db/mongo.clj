@@ -24,12 +24,12 @@
 (ns clj-storage.db.mongo
   (:require [monger.collection :as mc]
             [monger
-             [db :as mdb]
              [core :as mongo]
              [collection :as mcol]
              [query :as mq]]
             [monger.operators :refer [$gt]]
             [clj-storage.core :as storage :refer [Store]]
+            [clojure.spec.alpha :as spec]
             [taoensso.timbre :as log]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
@@ -48,22 +48,23 @@
 
 (defrecord MongoStore [mongo-db coll]
   Store
-  (store! [this k item]
-    (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))
-        (dissoc :_id)))
-
-  (store-and-create-id! [this item]
-    (mc/insert-and-return mongo-db coll item))
+  (store! [this item params]
+    {:pre [(spec/valid? :: person)]
+     :post [(spec/valid? map? %)]}
+    (if-let [id (:id params)]
+      (-> (mc/insert-and-return mongo-db coll (assoc item :_id (id item)))
+          (dissoc :_id))
+      (mc/insert-and-return mongo-db coll item)))
   
-  (update! [this k update-fn]
-    (when-let [item (if (map? k)
-                      (mc/find-one-as-map mongo-db coll k)
-                      (mc/find-map-by-id mongo-db coll k))]
+  (update! [this update-fn params]
+    (when-let [item (if (map? (:id params))
+                      (mc/find-one-as-map mongo-db coll (:id params))
+                      (mc/find-map-by-id mongo-db coll (:id params)))]
       (let [updated-item (update-fn item)]
         (-> (mc/save-and-return mongo-db coll updated-item)
             (dissoc :_id)))))
 
-  (fetch [this k]
+  #_(fetch [this k]
     (when k
       (-> (mc/find-map-by-id mongo-db coll k)
           (dissoc :_id))))
