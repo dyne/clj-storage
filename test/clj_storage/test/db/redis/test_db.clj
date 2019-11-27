@@ -29,8 +29,6 @@
 (def server1-conn {:pool {} :spec {:uri uri}})
 (defmacro wcar* [& body] `(car/wcar server1-conn ~@body))
 
-(wcar* (car/ping))
-
 (def db-and-conn (atom {}))
 
 (defn get-test-db []
@@ -39,9 +37,10 @@
 (defn get-test-db-connection []
   (:conn @db-and-conn))
 
-#_(defn setup-db []
+(defn setup-db []
   (log/debug "Setting up REDIS test DB")
-  (->> (m/get-mongo-db-and-conn test-db-uri)
+  (wcar* (car/ping))
+  #_(->> (m/get-mongo-db-and-conn test-db-uri)
        (m/drop-db)
        (reset! db-and-conn)))
 
