@@ -29,7 +29,10 @@
              [query :as mq]]
             [monger.operators :refer [$gt]]
             [clj-storage.core :as storage :refer [Store]]
+
+            [clj-storage.spec]
             [clojure.spec.alpha :as spec]
+            
             [taoensso.timbre :as log]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
