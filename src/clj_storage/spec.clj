@@ -29,7 +29,7 @@
 
 (spec/def ::id string?)
 (spec/def ::item map?)
-(spec/def ::only-k-map (spec/keys :req [::id]))
+(spec/def ::only-id-map (spec/keys :req [::id]))
 (spec/def :clj-storage.db.mongo/store-params (spec/keys :opt [::id]))
 (spec/def :clj-storage.db.mongo/store (spec/keys :req [::store ::item :clj-storage.db.mongo/store-params]))
 #_(spec/def ::col string?)

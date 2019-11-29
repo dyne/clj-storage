@@ -67,7 +67,7 @@
             (dissoc :_id)))))
   
   (query [this query]
-    (if (spec/valid? :clj-storage.spec/only-k-map query)
+    (if (spec/valid? :clj-storage.spec/only-id-map query)
       (-> (mc/find-map-by-id mongo-db coll (:id query))
           (dissoc :_id))
       (->> (mc/find-maps mongo-db coll query)
@@ -83,7 +83,7 @@
             (mq/paginate :page page :per-page per-page)))))
   
   (delete! [this item]
-    (if (spec/valid? (:clj-storage.spec/only-k-map item)) 
+    (if (spec/valid? (:clj-storage.spec/only-id-map item)) 
       (mc/remove-by-id mongo-db coll (:id item))
       (mc/remove mongo-db coll item)))
 
