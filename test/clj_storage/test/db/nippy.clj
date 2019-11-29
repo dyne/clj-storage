@@ -1,16 +1,16 @@
 (ns clj-storage.test.db.nippy
   (:require [midje.sweet :refer [fact => throws]]
-            [clj-storage.core :refer [store! fetch update! delete! query  delete-all!]]
-            [clj-storage.db.nippyfs :refer [create-nippy-store]]
+            #_[clj-storage.core :refer [store! fetch update! delete! query  delete-all!]]
+            #_[clj-storage.db.nippyfs :refer [create-nippy-store]]
             [taoensso.timbre :as log]))
 
-(def nip (create-nippy-store {:path "/tmp/clj-storage-test-nippyfs"
+#_(def nip (create-nippy-store {:path "/tmp/clj-storage-test-nippyfs"
                               :prefix ""
                               :suffix ".dat"}))
 
 (def stress-data [[{:a 1 :b 2 :c 3} {:a 4 :b 5 :c {:z 7 :y 9}}] [:a :b]])
 
-(fact "NippyFS tests"
+#_(fact "NippyFS tests"
       (fact "simple write, read, update and delete"
             (store!  nip "stress-data" stress-data)
             (fetch   nip "stress-data") => stress-data

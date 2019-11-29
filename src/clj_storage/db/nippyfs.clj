@@ -66,45 +66,46 @@
             (map #(let [f (.getName %)]
                     (if (re-find regex f) %)) files))))
 
-(defrecord NippyFS [conf]
+(comment
+  (defrecord NippyFS [conf]
 
-  ;; Configuration example:
-  ;; {:path   "/tmp/nippyfs"
-  ;;  :prefix ""
-  ;;  :suffix ".dat" }
+    ;; Configuration example:
+    ;; {:path   "/tmp/nippyfs"
+    ;;  :prefix ""
+    ;;  :suffix ".dat" }
 
-  Store
+    Store
 
-  (store! [this k item] (writekey conf k item))
+    (store! [this k item] (writekey conf k item))
 
-  (update! [this k ufn]
-    (->> (readkey conf k)
-         ufn ;; takes a single arg
-         (writekey conf k)))
+    (update! [this k ufn]
+      (->> (readkey conf k)
+           ufn ;; takes a single arg
+           (writekey conf k)))
 
-  (fetch [this k] (readkey conf k))
+    (fetch [this k] (readkey conf k))
 
-  (query [this query]
-    (loop [[f & files]
-           ;; TODO: may add caching here for speed
-           (list-files-matching
-            (:path conf)
-            (java.util.regex.Pattern/compile query))
-           res []]
-      (let [entry
-            (with-open [r (io/input-stream f)]
-              (nippy/thaw-from-in! (DataInputStream. r)))]
-        (if (empty? files) (if (nil? entry) res (conj res entry))
-            (recur  files (if (nil? entry) res (conj res entry)))))))
+    (query [this query]
+      (loop [[f & files]
+             ;; TODO: may add caching here for speed
+             (list-files-matching
+              (:path conf)
+              (java.util.regex.Pattern/compile query))
+             res []]
+        (let [entry
+              (with-open [r (io/input-stream f)]
+                (nippy/thaw-from-in! (DataInputStream. r)))]
+          (if (empty? files) (if (nil? entry) res (conj res entry))
+              (recur  files (if (nil? entry) res (conj res entry)))))))
 
-  (delete! [this k] (io/delete-file (getkey conf k)))
+    (delete! [this k] (io/delete-file (getkey conf k)))
 
-  (delete-all! [this]
-    (delete-files-recursively (:path conf)))
+    (delete-all! [this]
+      (delete-files-recursively (:path conf)))
 
-  ;; TODO: aggregate functions
-  )
+    ;; TODO: aggregate functions
+    )
 
-(defn create-nippy-store [conf]
-  (io/make-parents (str (:path conf) "/make-parents"))
-  (NippyFS. conf))
+  (defn create-nippy-store [conf]
+    (io/make-parents (str (:path conf) "/make-parents"))
+    (NippyFS. conf)))

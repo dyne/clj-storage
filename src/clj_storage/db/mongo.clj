@@ -48,32 +48,29 @@
 
 (defrecord MongoStore [mongo-db coll]
   Store
-  (store! [this item params]
-    {:pre [(spec/valid? :: person)]
-     :post [(spec/valid? map? %)]}
-    (if-let [id (:id params)]
-      (-> (mc/insert-and-return mongo-db coll (assoc item :_id (id item)))
-          (dissoc :_id))
+  (store! [this item]
+    (if (and (:id item) (spec/valid? map? item))
+      (do (log/spy (spec/valid? :clj-storage.spec/id (:id item)))
+          (log/spy (-> (mc/insert-and-return mongo-db coll (log/spy (assoc item :_id (:id item))))
+                       (dissoc :id))))
       (mc/insert-and-return mongo-db coll item)))
   
-  (update! [this update-fn params]
-    (when-let [item (if (map? (:id params))
-                      (mc/find-one-as-map mongo-db coll (:id params))
-                      (mc/find-map-by-id mongo-db coll (:id params)))]
+  (update! [this item update-fn]
+    (when-let [item (if-let [id (and (:id item) (spec/valid? :clj-storage.spec/id (:id item)))]
+                      (mc/find-map-by-id mongo-db coll id)
+                      (mc/find-one-as-map mongo-db coll item))]
       (let [updated-item (update-fn item)]
         (-> (mc/save-and-return mongo-db coll updated-item)
             (dissoc :_id)))))
-
-  #_(fetch [this k]
-    (when k
-      (-> (mc/find-map-by-id mongo-db coll k)
-          (dissoc :_id))))
-
+  
   (query [this query]
-    (->> (mc/find-maps mongo-db coll query)
-         (map #(dissoc % :_id))))
+    (if (spec/valid? :clj-storage.spec/only-k-map query)
+      (-> (mc/find-map-by-id mongo-db coll (:id query))
+          (dissoc :_id))
+      (->> (mc/find-maps mongo-db coll query)
+           (map #(dissoc % :_id)))))
 
-  (list-per-page [this query page per-page]
+ #_(list-per-page [this query page per-page]
     (vec (map
           ;; TODO: can this be done by the monger query lib?
           #(dissoc % :_id)
@@ -82,29 +79,34 @@
             (mq/sort {:timestamp -1})
             (mq/paginate :page page :per-page per-page)))))
   
-  (delete! [this k]
-    (when k
-      (mc/remove-by-id mongo-db coll k)))
+  (delete! [this item]
+    (if (spec/valid? (:clj-storage.spec/only-k-map item)) 
+      (mc/remove-by-id mongo-db coll (:id item))
+      (mc/remove mongo-db coll item)))
 
-  (delete-all! [this]
+  ;; Maybe move this to DB specific file and not the protocol
+  #_(delete-all! [this]
     (mc/remove mongo-db coll))
 
-  (aggregate [this formula]
+  (aggregate [this formula params]
     (mc/aggregate mongo-db coll formula))
 
-  (count-since [this from-date-time formula]
+  #_(count-since [this from-date-time formula]
     (let [dt-condition {:created-at {$gt from-date-time}}]
       (mc/count mongo-db coll (merge formula
                                      dt-condition))))
 
-  (count* [this formula]
+  #_(count* [this formula]
     (mc/count mongo-db coll formula)))
+
+#_(defn count-items-in-col [moongo-store query]
+  ())
 
 (defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
   ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
-   (let [store (MongoStore. mongo-db coll)]
+   (let [store (log/spy (MongoStore. mongo-db coll))]
      (when expireAfterSeconds 
        (mc/ensure-index mongo-db coll {:created-at 1}
                         {:expireAfterSeconds expireAfterSeconds}))
@@ -115,10 +117,10 @@
 
 (defn create-mongo-stores
   [db name-param-m]
-  (reduce merge (map
-                 #(let [col-name (key %)
-                        params-m (val %)] 
-                    (hash-map
-                     (keyword col-name)
-                     (create-mongo-store db col-name params-m)))
-                 name-param-m)))
+  (log/spy (reduce merge (map
+                          #(let [col-name (key %)
+                                 params-m (val %)] 
+                             (hash-map
+                              (keyword col-name)
+                              (create-mongo-store db col-name params-m)))
+                          name-param-m))))

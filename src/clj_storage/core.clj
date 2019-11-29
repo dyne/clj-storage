@@ -24,56 +24,61 @@
 (ns clj-storage.core)
 
 (defprotocol Store
-  (store! [s item params]
-    "Store an item to storage s with params")
-  (update! [s update-fn params]
+  (store! [s item]
+    "Store an item to storage s")
+  (update! [s item update-fn]
     "Update the item found by running the update-fn on it and storing it")
-  (query [s query params]
-    "Items are returned using a query map")
-  (delete! [s params]
-    "Delete item(s) from a storage s")
+  (query [s query]
+    "Find one or more items given a query map (does a fetch when query map is only k)")
+  (delete! [s item]
+    "Delete item from a storage s")
   (aggregate [e formula params]
     "Process data aggragate and return computed results")) 
 
-(defrecord MemoryStore [data]
+#_(defrecord MemoryStore [data]
   Store
-  (store! [this k item]
-    (do (swap! data assoc (k item) item)
+  (store! [this item]
+    ;; TODO: is k a good solution?
+    (do (swap! data assoc ((:k item) item) item)
         item))
 
-  (update! [this k update-fn]
-    (when-let [item (@data k)]
+  (update! [this item update-fn]
+    (when-let [item (@data (:k item))]
       (let [updated-item (update-fn item)]
-        (swap! data assoc k updated-item)
+        (swap! data assoc (:k item) updated-item)
         updated-item)))
 
-  (fetch [this k] (@data k))
+  #_(fetch [this k] (@data k))
 
+  ;; TODO: add fetch
   (query [this query]
     (filter #(= query (select-keys % (keys query))) (vals @data)))
 
-  (delete! [this k]
-    (swap! data dissoc k))
+  (delete! [this item]
+    (swap! data dissoc (:k item)))
 
-  (delete-all! [this]
+  ;; TODO: maybe add as wrapper function?
+  #_(delete-all! [this]
     (reset! data {}))
 
-  (count-since [this date-time formula]
+  ;; TODO: add aggregate?
+  #_(count-since [this date-time formula]
     ;; TODO: date time add
     (count (filter #(= formula (select-keys % (keys formula))) (vals @data)))))
 
-(defn create-memory-store
+#_(defn create-memory-store
   "Create a memory store"
   ([] (create-memory-store {}))
   ([data]
    ;; TODO: implement ttl and aggregation
    (MemoryStore. (atom data))))
 
-(defn create-in-memory-stores [store-names]
+#_(defn create-in-memory-stores [store-names]
   (zipmap
    (map #(keyword %) store-names)
    (repeat (count store-names) (create-memory-store))))
 
-(defn empty-db-stores! [stores-m]
+;; TODO
+#_(defn empty-db-stores! [stores-m]
   (doseq [col (vals stores-m)]
     (delete-all! col)))
