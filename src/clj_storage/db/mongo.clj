@@ -27,9 +27,12 @@
              [core :as mongo]
              [collection :as mcol]
              [query :as mq]]
-            [monger.operators :refer [$gt]]
+            [monger.operators :refer [$gt $match $group $sum]]
+            
             [clj-storage.core :as storage :refer [Store]]
+            [clj-storage.spec]
             [clojure.spec.alpha :as spec]
+            
             [taoensso.timbre :as log]))
 
 (defn get-mongo-db-and-conn [mongo-uri]
@@ -48,32 +51,29 @@
 
 (defrecord MongoStore [mongo-db coll]
   Store
-  (store! [this item params]
-    {:pre [(spec/valid? :: person)]
-     :post [(spec/valid? map? %)]}
-    (if-let [id (:id params)]
-      (-> (mc/insert-and-return mongo-db coll (assoc item :_id (id item)))
-          (dissoc :_id))
+  (store! [this item]
+    (if (and (:id item) (spec/valid? map? item))
+      (do (spec/valid? :clj-storage.spec/id (:id item))
+          (-> (mc/insert-and-return mongo-db coll (assoc item :_id (:id item)))
+              (dissoc :id)))
       (mc/insert-and-return mongo-db coll item)))
   
-  (update! [this update-fn params]
-    (when-let [item (if (map? (:id params))
-                      (mc/find-one-as-map mongo-db coll (:id params))
-                      (mc/find-map-by-id mongo-db coll (:id params)))]
+  (update! [this item update-fn]
+    (when-let [item (if-let [id (and (:id item) (spec/valid? :clj-storage.spec/id (:id item)))]
+                      (mc/find-map-by-id mongo-db coll id)
+                      (mc/find-one-as-map mongo-db coll item))]
       (let [updated-item (update-fn item)]
         (-> (mc/save-and-return mongo-db coll updated-item)
             (dissoc :_id)))))
-
-  #_(fetch [this k]
-    (when k
-      (-> (mc/find-map-by-id mongo-db coll k)
-          (dissoc :_id))))
-
+  
   (query [this query]
-    (->> (mc/find-maps mongo-db coll query)
-         (map #(dissoc % :_id))))
+    (if (spec/valid? :clj-storage.spec/only-id-map query)
+      (-> (mc/find-map-by-id mongo-db coll (:id query))
+          (dissoc :_id))
+      (->> (mc/find-maps mongo-db coll query)
+           (map #(dissoc % :_id)))))
 
-  (list-per-page [this query page per-page]
+ #_(list-per-page [this query page per-page]
     (vec (map
           ;; TODO: can this be done by the monger query lib?
           #(dissoc % :_id)
@@ -82,23 +82,48 @@
             (mq/sort {:timestamp -1})
             (mq/paginate :page page :per-page per-page)))))
   
-  (delete! [this k]
-    (when k
-      (mc/remove-by-id mongo-db coll k)))
+  (delete! [this item]
+    (if (spec/valid? :clj-storage.spec/only-id-map item) 
+      (mc/remove-by-id mongo-db coll (:id item))
+      (mc/remove mongo-db coll item)))
 
-  (delete-all! [this]
+  ;; Maybe move this to DB specific file and not the protocol
+  #_(delete-all! [this]
     (mc/remove mongo-db coll))
 
-  (aggregate [this formula]
+  ;; TODO: remove params?
+  (aggregate [this formula params]
     (mc/aggregate mongo-db coll formula))
 
-  (count-since [this from-date-time formula]
+  #_(count-since [this from-date-time formula]
     (let [dt-condition {:created-at {$gt from-date-time}}]
       (mc/count mongo-db coll (merge formula
                                      dt-condition))))
 
-  (count* [this formula]
+  #_(count* [this formula]
     (mc/count mongo-db coll formula)))
+
+(defn count-items [mongo-store query]
+  (or (-> (storage/aggregate mongo-store
+                             [{"$match" query}
+                              {"$group" {:_id nil
+                                         :count {"$sum" 1}}}]
+                             {})
+          first
+          :count)
+      ;; If no aggregation is made due to match not fitting, return 0
+      0))
+
+(defn count-since [mongo-store dt query]
+  (or (-> (storage/aggregate mongo-store
+                             [{"$match" (merge query {:timestamp {"$gt" dt}})}
+                              {"$group" {:_id nil
+                                         :count {"$sum" 1}}}]
+                             {})
+          first
+          :count)
+      ;; If no aggregation is made due to match not fitting, return 0 
+      0))
 
 (defn create-mongo-store
   ([mongo-db coll]

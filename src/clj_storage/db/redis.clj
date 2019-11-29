@@ -26,7 +26,7 @@
             [clj-storage.core :as storage :refer [Store]]
             [taoensso.timbre :as log]))
 
-(defrecord RedisStore [mongo-db coll]
+#_(defrecord RedisStore [mongo-db coll]
   Store
   (store! [this k item]
     (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))
@@ -79,7 +79,7 @@
   (count* [this formula]
     (mc/count mongo-db coll formula)))
 
-(defn create-mongo-store
+#_(defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
   ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
@@ -92,7 +92,7 @@
         (mc/ensure-index mongo-db coll (array-map index 1) {:unique true})))
      store)))
 
-(defn create-mongo-stores
+#_(defn create-mongo-stores
   [db name-param-m]
   (reduce merge (map
                  #(let [col-name (key %)

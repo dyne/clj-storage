@@ -14,7 +14,8 @@
 
                  ;; mongodb
                  [org.clojars.dyne/monger "3.2.0-SNAPSHOT"]
-
+                 [cheshire "5.3.1"]
+                 
                  ;; file storage
                  [com.taoensso/nippy "2.14.0"]
 
