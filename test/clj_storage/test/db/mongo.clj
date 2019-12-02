@@ -109,39 +109,8 @@
                                            (count-since (:transaction-store stores) now {}) => 0))
 
                                    (fact "Test delete"
-                                         )
-                                   
-                                   #_(fact "Test counts."
-                                           (count-items (:transaction-store stores) {}) => 1
-                                           (storage/store! (:transaction-store stores) {:id (rand-int 20000)
-                                                                                        :currency :mongo
-                                                                                        :from-id "yet-an-account"
-                                                                                        :to-id "another-account"
-                                                                                        :tags []
-                                                                                        :amount 1000
-                                                                                        :timestamp (new java.util.Date)
-                                                                                        :transaction-id "2"})
-                                           (count-items (:transaction-store stores) {}) => 2
-                                           (count-items (:transaction-store stores) {:from-id "yat-an-account"}) => 1)
-
-                                   #_(fact "Query and fetch both work"
-                                           ;; Insert with specific id
-                                           (storage/store! (:transaction-store stores) {:id "specific-id"
-                                                                                        :currency :mongo
-                                                                                        :from-id "yet-an-account"
-                                                                                        :to-id "another-account"
-                                                                                        :tags []
-                                                                                        :amount 1000
-                                                                                        :timestamp (new java.util.Date)
-                                                                                        :transaction-id "22"})
-                                           ;; Fetch
-                                           )
-                                   #_(fact "Test that date time filtering works."
-                                           (let [now (new java.util.Date)]
-                                             (count-items (:transaction-store stores) {}) => 2
-                                             ;; TODO: re-add pagination
-                                             #_(-> (storage/list-per-page (:transaction-store stores) {} 1 100) first :timestamp) #_=> #_truthy
-                                             (count-since (:transaction-store stores) now) => 0
-                                             (count-items (:transaction-store stores) {:timestamp {"$gt" now}}) => 0
-                                             (comment 
-                                               (count-items (:transaction-store stores) {:timestamp {"$lt" now}}) => 2)))))))
+                                         (count-items (:transaction-store stores) {}) => 2
+                                         (storage/delete! (:transaction-store stores) {:id hardcoded-id}) => truthy
+                                         (count-items (:transaction-store stores) {}) => 1
+                                         (storage/delete! (:transaction-store stores) {}) => truthy
+                                         (count-items (:transaction-store stores) {}) => 0)))))

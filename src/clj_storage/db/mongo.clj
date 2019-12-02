@@ -83,7 +83,7 @@
             (mq/paginate :page page :per-page per-page)))))
   
   (delete! [this item]
-    (if (spec/valid? (:clj-storage.spec/only-id-map item)) 
+    (if (spec/valid? :clj-storage.spec/only-id-map item) 
       (mc/remove-by-id mongo-db coll (:id item))
       (mc/remove mongo-db coll item)))
 
