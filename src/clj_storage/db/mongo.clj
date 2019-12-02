@@ -27,9 +27,9 @@
              [core :as mongo]
              [collection :as mcol]
              [query :as mq]]
-            [monger.operators :refer [$gt]]
+            [monger.operators :refer [$gt $match $group $sum]]
+            
             [clj-storage.core :as storage :refer [Store]]
-
             [clj-storage.spec]
             [clojure.spec.alpha :as spec]
             
@@ -53,9 +53,9 @@
   Store
   (store! [this item]
     (if (and (:id item) (spec/valid? map? item))
-      (do (log/spy (spec/valid? :clj-storage.spec/id (:id item)))
-          (log/spy (-> (mc/insert-and-return mongo-db coll (log/spy (assoc item :_id (:id item))))
-                       (dissoc :id))))
+      (do (spec/valid? :clj-storage.spec/id (:id item))
+          (-> (mc/insert-and-return mongo-db coll (assoc item :_id (:id item)))
+              (dissoc :id)))
       (mc/insert-and-return mongo-db coll item)))
   
   (update! [this item update-fn]
@@ -91,6 +91,7 @@
   #_(delete-all! [this]
     (mc/remove mongo-db coll))
 
+  ;; TODO: remove params?
   (aggregate [this formula params]
     (mc/aggregate mongo-db coll formula))
 
@@ -102,14 +103,33 @@
   #_(count* [this formula]
     (mc/count mongo-db coll formula)))
 
-#_(defn count-items-in-col [moongo-store query]
-  ())
+(defn count-items [mongo-store query]
+  (or (-> (storage/aggregate mongo-store
+                             [{"$match" query}
+                              {"$group" {:_id nil
+                                         :count {"$sum" 1}}}]
+                             {})
+          first
+          :count)
+      ;; If no aggregation is made due to match not fitting, return 0
+      0))
+
+(defn count-since [mongo-store dt query]
+  (or (-> (storage/aggregate mongo-store
+                             [{"$match" (merge query {:timestamp {"$gt" dt}})}
+                              {"$group" {:_id nil
+                                         :count {"$sum" 1}}}]
+                             {})
+          first
+          :count)
+      ;; If no aggregation is made due to match not fitting, return 0 
+      0))
 
 (defn create-mongo-store
   ([mongo-db coll]
    (create-mongo-store mongo-db coll {}))
   ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
-   (let [store (log/spy (MongoStore. mongo-db coll))]
+   (let [store (MongoStore. mongo-db coll)]
      (when expireAfterSeconds 
        (mc/ensure-index mongo-db coll {:created-at 1}
                         {:expireAfterSeconds expireAfterSeconds}))
@@ -120,10 +140,10 @@
 
 (defn create-mongo-stores
   [db name-param-m]
-  (log/spy (reduce merge (map
-                          #(let [col-name (key %)
-                                 params-m (val %)] 
-                             (hash-map
-                              (keyword col-name)
-                              (create-mongo-store db col-name params-m)))
-                          name-param-m))))
+  (reduce merge (map
+                 #(let [col-name (key %)
+                        params-m (val %)] 
+                    (hash-map
+                     (keyword col-name)
+                     (create-mongo-store db col-name params-m)))
+                 name-param-m)))
