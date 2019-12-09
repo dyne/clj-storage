@@ -95,13 +95,12 @@
   (aggregate [this formula params]
     (mc/aggregate mongo-db coll formula))
 
-  #_(count-since [this from-date-time formula]
-    (let [dt-condition {:created-at {$gt from-date-time}}]
-      (mc/count mongo-db coll (merge formula
-                                     dt-condition))))
+  (add-index [this index unique]
+    (when (spec/valid? :clj-storage.core/unique unique)
+      (mc/ensure-index mongo-db coll (array-map index 1) {:unique unique})))
 
-  #_(count* [this formula]
-    (mc/count mongo-db coll formula)))
+  (expire [this seconds]
+    (mc/ensure-index mongo-db coll {:created-at 1} {:expireAfterSeconds seconds})))
 
 (defn count-items [mongo-store query]
   (or (-> (storage/aggregate mongo-store
@@ -130,13 +129,12 @@
    (create-mongo-store mongo-db coll {}))
   ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
    (let [store (MongoStore. mongo-db coll)]
-     (when expireAfterSeconds 
-       (mc/ensure-index mongo-db coll {:created-at 1}
-                        {:expireAfterSeconds expireAfterSeconds}))
+     (when expireAfterSeconds
+       (storage/expire store expireAfterSeconds))
      (when unique-index
-       (doseq [index unique-index] 
-        (mc/ensure-index mongo-db coll (array-map index 1) {:unique true})))
-     store)))
+       (doseq [index unique-index]
+         (storage/add-index store index true)))
+     store )))
 
 (defn create-mongo-stores
   [db name-param-m]

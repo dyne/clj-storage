@@ -27,6 +27,7 @@
 ;; TODO: extract config
 (def MAX-PER-PAGE 100)
 
+(spec/def :clj-storage.core/unique boolean)
 (spec/def ::id string?)
 (spec/def ::item map?)
 (spec/def ::only-id-map (spec/keys :req [::id]))

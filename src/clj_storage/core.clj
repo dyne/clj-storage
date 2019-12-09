@@ -29,11 +29,15 @@
   (update! [s item update-fn]
     "Update the item found by running the update-fn on it and storing it")
   (query [s query]
-    "Find one or more items given a query map (does a fetch when query map is only k)")
+    "Find one or more items given a query map (does a fetch when query map is only id)")
   (delete! [s item]
     "Delete item from a storage s")
-  (aggregate [e formula params]
-    "Process data aggragate and return computed results")) 
+  (aggregate [s formula params]
+    "Process data aggregate and return computed results")
+  (add-index [s index unique]
+    "Add an index to a storage s. Unique can be true or false")
+  (expire [s seconds]
+    "Expire items of this storage after seconds")) 
 
 #_(defrecord MemoryStore [data]
   Store
