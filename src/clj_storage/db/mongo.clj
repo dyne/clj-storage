@@ -52,11 +52,13 @@
 (defrecord MongoStore [mongo-db coll]
   Store
   (store! [this item]
-    (if (and (:id item) (spec/valid? map? item))
-      (do (spec/valid? :clj-storage.spec/id (:id item))
-          (-> (mc/insert-and-return mongo-db coll (assoc item :_id (:id item)))
-              (dissoc :id)))
-      (mc/insert-and-return mongo-db coll item)))
+    ;; always add a created-at field, in case we need expiration
+    (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
+      (if (and (:id item) (spec/valid? map? item))
+        (do (spec/valid? :clj-storage.spec/id (:id item))
+            (-> (mc/insert-and-return mongo-db coll (assoc item-with-timestamp :_id (:id item)))
+                (dissoc :id)))
+        (mc/insert-and-return mongo-db coll item-with-timestamp))))
   
   (update! [this item update-fn]
     (when-let [item (if-let [id (and (:id item) (spec/valid? :clj-storage.spec/id (:id item)))]

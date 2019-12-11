@@ -67,6 +67,11 @@
                                    (count (mcol/indexes-on (test-db/get-test-db) "simple-store")) => 1
                                    (count (mcol/indexes-on (test-db/get-test-db) "store-with-ttl")) => 2
                                    (fact "Test mongo create."
+                                         ;; Adding here the expiration entry for later
+                                         (count (storage/query (:store-with-ttl stores) {} {})) => 0
+                                         (storage/store! (:store-with-ttl stores) {:name "to be deleted"})
+                                         (count (storage/query (:store-with-ttl stores) {} {})) => 1
+                                         
                                          (let [item (storage/store! (:transaction-store stores) {:id hardcoded-id
                                                                                                  :currency :mongo
                                                                                                  :from-id "an-account"
@@ -91,7 +96,7 @@
                                                                                       :transaction-id "2"}) => truthy
                                          (-> (storage/query (:transaction-store stores) {:transaction-id "2"} {})
                                              first
-                                             (dissoc :id :timestamp)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"}
+                                             (dissoc :id :timestamp :created-at)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"}
                                          
                                          (let [item (first (storage/query (:transaction-store stores) {:transaction-id "2"} {}))
                                                updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
@@ -119,4 +124,11 @@
                                          (storage/delete! (:transaction-store stores) {:id hardcoded-id}) => truthy
                                          (count-items (:transaction-store stores) {}) => 1
                                          (storage/delete! (:transaction-store stores) {}) => truthy
-                                         (count-items (:transaction-store stores) {}) => 0)))))
+                                         (count-items (:transaction-store stores) {}) => 0)
+                                   
+                                   
+                                   (fact "Test expiration"
+                                         
+                                         ;; TTL is set to 30 seconds but mongo checks only every ~60 secs
+                                         (Thread/sleep (* 90 1000))
+                                         (count (storage/query (:store-with-ttl stores) {} {})) => 0)))))
