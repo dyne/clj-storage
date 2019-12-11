@@ -76,7 +76,7 @@
                                                                                                  :timestamp (new java.util.Date) 
                                                                                                  :transaction-id "1"})]
                                            (:amount item) => 1000
-                                           (-> (storage/query (:transaction-store stores) {:id hardcoded-id})
+                                           (-> (storage/query (:transaction-store stores) {:id hardcoded-id} {})
                                                first
                                                :amount) => 1000))
                                    
@@ -89,21 +89,27 @@
                                                                                       :amount 1000
                                                                                       :timestamp (new java.util.Date) 
                                                                                       :transaction-id "2"}) => truthy
-                                         (-> (storage/query (:transaction-store stores) {:transaction-id "2"})
+                                         (-> (storage/query (:transaction-store stores) {:transaction-id "2"} {})
                                              first
                                              (dissoc :id :timestamp)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"}
                                          
-                                         (let [item (first (storage/query (:transaction-store stores) {:transaction-id "2"}))
+                                         (let [item (first (storage/query (:transaction-store stores) {:transaction-id "2"} {}))
                                                updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
                                            (:amount updated-item) => 1001)
                                          (:amount (storage/update! (:transaction-store stores) {:transaction-id "2"} (fn [doc] (update doc :amount #(+ % 1))))) => 1001)
+
+                                   (fact "Test pagination"
+                                         (count (storage/query (:transaction-store stores) {} {:per-page 1 :page 1}))
+                                         => 1
+                                         (count (storage/query (:transaction-store stores) {} {:per-page 10 :page 1}))
+                                         => 2)
 
                                    (fact "Test aggregation (count)"
                                          (count-items (:transaction-store stores) {}) => 2
                                          (count-items (:transaction-store stores) {:transaction-id "2"}) => 1
                                          (count-items (:transaction-store stores) {:amount {"$gt" 1000}}) => 1
                                          (let [now (time/now)
-                                               some-transaction (first (storage/query (:transaction-store stores) {:id hardcoded-id}))]
+                                               some-transaction (first (storage/query (:transaction-store stores) {:id hardcoded-id} {}))]
                                            (time/after? now (:timestamp some-transaction)) => true
                                            (count-items (:transaction-store stores) {:timestamp {"$lt" now}}) => 2                          
                                            (count-since (:transaction-store stores) now {}) => 0))

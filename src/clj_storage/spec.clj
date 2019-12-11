@@ -27,18 +27,23 @@
 ;; TODO: extract config
 (def MAX-PER-PAGE 100)
 
-(spec/def :clj-storage.core/unique boolean)
+(spec/def ::page (spec/int-in 0 Integer/MAX_VALUE))
+(spec/def ::per-page (spec/int-in 1 MAX-PER-PAGE))
+
 (spec/def ::id string?)
 (spec/def ::item map?)
 (spec/def ::only-id-map (spec/keys :req [::id]))
+
+(spec/def :clj-storage.db.mongo/pagination (spec/keys :page :per-page))
 (spec/def :clj-storage.db.mongo/store-params (spec/keys :opt [::id]))
 (spec/def :clj-storage.db.mongo/store (spec/keys :req [::store ::item :clj-storage.db.mongo/store-params]))
+
+(spec/def :clj-storage.core/unique boolean)
+
 #_(spec/def ::col string?)
 #_(spec/def ::mongodb map?)
 #_(spec/def :clj-storage.db.mongo/base-params (spec/keys :req [::mongo-db ::col]))
 
 #_(spec/def :aggregate-type  #{::count})
 #_(spec/def :clj-storage.core/aggregate-params (spec/keys ::aggregate-type ::since))
-#_(spec/def ::page (spec/int-in 0 Integer/max))
-#_(spec/def ::per-page (spec/int-in 1 MAX-PER-PAGE))
 #_(spec/def :clj-storage.core/pagination-params (spec/keys ::page ::per-page))
