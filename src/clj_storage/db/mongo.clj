@@ -66,21 +66,18 @@
         (-> (mc/save-and-return mongo-db coll updated-item)
             (dissoc :_id)))))
   
-  (query [this query]
-    (if (spec/valid? :clj-storage.spec/only-id-map query)
-      (-> (mc/find-map-by-id mongo-db coll (:id query))
-          (dissoc :_id))
-      (->> (mc/find-maps mongo-db coll query)
-           (map #(dissoc % :_id)))))
-
- #_(list-per-page [this query page per-page]
-    (vec (map
-          ;; TODO: can this be done by the monger query lib?
-          #(dissoc % :_id)
-          (mq/with-collection mongo-db coll
-            (mq/find query)
-            (mq/sort {:timestamp -1})
-            (mq/paginate :page page :per-page per-page)))))
+  (query [this query pagination]
+    (if (empty? pagination)
+      (if (spec/valid? :clj-storage.spec/only-id-map query)
+        (-> (mc/find-map-by-id mongo-db coll (:id query))
+            (dissoc :_id))
+        (->> (mc/find-maps mongo-db coll query)
+             (map #(dissoc % :_id))))
+      (when (spec/valid? :clj-storage.db.mongo/pagination pagination)
+        (mq/with-collection mongo-db coll
+          (mq/find query)
+          (mq/sort {:timestamp -1})
+          (mq/paginate :page (:page pagination) :per-page (:per-page pagination))))))
   
   (delete! [this item]
     (if (spec/valid? :clj-storage.spec/only-id-map item) 

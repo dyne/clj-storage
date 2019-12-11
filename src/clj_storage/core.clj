@@ -28,8 +28,8 @@
     "Store an item to storage s")
   (update! [s item update-fn]
     "Update the item found by running the update-fn on it and storing it")
-  (query [s query]
-    "Find one or more items given a query map (does a fetch when query map is only id)")
+  (query [s query pagination]
+    "Find one or more items given a query map (does a fetch when query map is only id). Pagination will be used if not empty.")
   (delete! [s item]
     "Delete item from a storage s")
   (aggregate [s formula params]
