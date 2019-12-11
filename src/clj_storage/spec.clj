@@ -39,11 +39,3 @@
 (spec/def :clj-storage.db.mongo/store (spec/keys :req [::store ::item :clj-storage.db.mongo/store-params]))
 
 (spec/def :clj-storage.core/unique boolean)
-
-#_(spec/def ::col string?)
-#_(spec/def ::mongodb map?)
-#_(spec/def :clj-storage.db.mongo/base-params (spec/keys :req [::mongo-db ::col]))
-
-#_(spec/def :aggregate-type  #{::count})
-#_(spec/def :clj-storage.core/aggregate-params (spec/keys ::aggregate-type ::since))
-#_(spec/def :clj-storage.core/pagination-params (spec/keys ::page ::per-page))

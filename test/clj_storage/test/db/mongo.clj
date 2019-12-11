@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti <aspra@dyne.org>
@@ -27,6 +27,7 @@
              [core :as m]
              [db :as db]
              [collection :as mcol]]
+            [monger.operators :refer :all]
             [clj-storage.db.mongo :refer [create-mongo-stores drop-db count-items count-since]]
             [clj-time.core :as time]
             [monger.joda-time]
@@ -67,6 +68,11 @@
                                    (count (mcol/indexes-on (test-db/get-test-db) "simple-store")) => 1
                                    (count (mcol/indexes-on (test-db/get-test-db) "store-with-ttl")) => 2
                                    (fact "Test mongo create."
+                                         ;; Adding here the expiration entry for later
+                                         (count (storage/query (:store-with-ttl stores) {} {})) => 0
+                                         (storage/store! (:store-with-ttl stores) {:name "to be deleted"})
+                                         (count (storage/query (:store-with-ttl stores) {} {})) => 1
+                                         
                                          (let [item (storage/store! (:transaction-store stores) {:id hardcoded-id
                                                                                                  :currency :mongo
                                                                                                  :from-id "an-account"
@@ -80,7 +86,8 @@
                                                first
                                                :amount) => 1000))
                                    
-                                   (fact "Test mongo update and query." 
+                                   (fact "Test mongo update and query."
+                                         ;; During storage with mongo, keywords are convertd to strings
                                          (storage/store! (:transaction-store stores) {:id (rand-int 20000)
                                                                                       :currency :mongo
                                                                                       :from-id "an-account"
@@ -91,12 +98,25 @@
                                                                                       :transaction-id "2"}) => truthy
                                          (-> (storage/query (:transaction-store stores) {:transaction-id "2"} {})
                                              first
-                                             (dissoc :id :timestamp)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"}
+                                             (dissoc :id :timestamp :created-at)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"}
                                          
                                          (let [item (first (storage/query (:transaction-store stores) {:transaction-id "2"} {}))
                                                updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
                                            (:amount updated-item) => 1001)
-                                         (:amount (storage/update! (:transaction-store stores) {:transaction-id "2"} (fn [doc] (update doc :amount #(+ % 1))))) => 1001)
+                                         (.getN (storage/update! (:transaction-store stores) {:transaction-id "2"} {$inc {:amount 1}})) => 1
+                                         (:amount (first (storage/query (:transaction-store stores) {:transaction-id "2"} {}))) => 1001)
+
+                                   (fact "Check that can update two items in the same time with query"
+                                         (count (storage/query (:transaction-store stores) {:from-id "an-account"} {})) => 2
+                                         
+                                         (.getN (storage/update! (:transaction-store stores) {:from-id "an-account"} {$inc {:amount 1}})) => 2
+
+                                         (-> (storage/query (:transaction-store stores) {:from-id "an-account"} {})
+                                             first
+                                             :amount) => 1001
+                                         (-> (storage/query (:transaction-store stores) {:from-id "an-account"} {})
+                                             second
+                                             :amount) => 1002)
 
                                    (fact "Test pagination"
                                          (count (storage/query (:transaction-store stores) {} {:per-page 1 :page 1}))
@@ -107,7 +127,7 @@
                                    (fact "Test aggregation (count)"
                                          (count-items (:transaction-store stores) {}) => 2
                                          (count-items (:transaction-store stores) {:transaction-id "2"}) => 1
-                                         (count-items (:transaction-store stores) {:amount {"$gt" 1000}}) => 1
+                                         (count-items (:transaction-store stores) {:amount {"$gt" 1000}}) => 2
                                          (let [now (time/now)
                                                some-transaction (first (storage/query (:transaction-store stores) {:id hardcoded-id} {}))]
                                            (time/after? now (:timestamp some-transaction)) => true
@@ -119,4 +139,11 @@
                                          (storage/delete! (:transaction-store stores) {:id hardcoded-id}) => truthy
                                          (count-items (:transaction-store stores) {}) => 1
                                          (storage/delete! (:transaction-store stores) {}) => truthy
-                                         (count-items (:transaction-store stores) {}) => 0)))))
+                                         (count-items (:transaction-store stores) {}) => 0))
+
+                             (facts "Test expiration" :slow
+                                    (fact "Wait for 90 seconds to check that item is deleted after expiration" :slow
+                                          
+                                          ;; TTL is set to 30 seconds but mongo checks only every ~60 secs
+                                          (Thread/sleep (* 90 1000))
+                                          (count (storage/query (:store-with-ttl stores) {} {})) => 0)))))

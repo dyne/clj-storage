@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -21,15 +21,18 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns clj-storage.core)
+(ns clj-storage.core
+  (:require [clj-storage.spec]
+            [clojure.spec.alpha :as spec]
+            [taoensso.timbre :as log]))
 
 (defprotocol Store
   (store! [s item]
     "Store an item to storage s")
-  (update! [s item update-fn]
-    "Update the item found by running the update-fn on it and storing it")
+  (update! [s query update-fn]
+    "Update all items found by with the update-fn, specific to the implementation")
   (query [s query pagination]
-    "Find one or more items given a query map (does a fetch when query map is only id). Pagination will be used if not empty.")
+    "Find one or more items given a query map (does a fetch when query map is only id). Pagination will be used if not empty")
   (delete! [s item]
     "Delete item from a storage s")
   (aggregate [s formula params]
