@@ -27,7 +27,7 @@
              [core :as mongo]
              [collection :as mcol]
              [query :as mq]]
-            [monger.operators :refer [$gt $match $group $sum]]
+            [monger.operators :refer :all]
             
             [clj-storage.core :as storage :refer [Store]]
             [clj-storage.spec]
@@ -52,21 +52,16 @@
 (defrecord MongoStore [mongo-db coll]
   Store
   (store! [this item]
-    ;; always add a created-at field, in case we need expiration
+    ;; always adding a created-at field, in case we need expiration
     (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
       (if (and (:id item) (spec/valid? map? item))
         (do (spec/valid? :clj-storage.spec/id (:id item))
             (-> (mc/insert-and-return mongo-db coll (assoc item-with-timestamp :_id (:id item)))
                 (dissoc :id)))
         (mc/insert-and-return mongo-db coll item-with-timestamp))))
-  
-  (update! [this item update-fn]
-    (when-let [item (if-let [id (and (:id item) (spec/valid? :clj-storage.spec/id (:id item)))]
-                      (mc/find-map-by-id mongo-db coll id)
-                      (mc/find-one-as-map mongo-db coll item))]
-      (let [updated-item (update-fn item)]
-        (-> (mc/save-and-return mongo-db coll updated-item)
-            (dissoc :_id)))))
+
+  (update! [this query update-fn]
+    (mc/update mongo-db coll query update-fn  {:multi true}))
   
   (query [this query pagination]
     (if (empty? pagination)
@@ -86,6 +81,7 @@
       (mc/remove-by-id mongo-db coll (:id item))
       (mc/remove mongo-db coll item)))
 
+  ;; TODO: delete-all?
   ;; Maybe move this to DB specific file and not the protocol
   #_(delete-all! [this]
     (mc/remove mongo-db coll))
