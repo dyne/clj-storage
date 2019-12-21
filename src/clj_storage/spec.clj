@@ -39,3 +39,4 @@
 (spec/def :clj-storage.db.mongo/store (spec/keys :req [::store ::item :clj-storage.db.mongo/store-params]))
 
 (spec/def :clj-storage.core/unique boolean)
+(spec/def :clj-storage.core/in-memory-store-names (spec/coll-of string?))

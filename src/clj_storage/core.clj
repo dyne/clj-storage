@@ -42,27 +42,33 @@
   (expire [s seconds]
     "Expire items of this storage after seconds")) 
 
-#_(defrecord MemoryStore [data]
+(defrecord MemoryStore [data]
   Store
   (store! [this item]
-    ;; TODO: is k a good solution?
-    (do (swap! data assoc ((:k item) item) item)
-        item))
+    (let [id (or (:id item)
+                 (str (java.util.UUID/randomUUID)))]
+      (swap! data assoc id (assoc item :id id))
+      item))
 
-  (update! [this item update-fn]
-    (when-let [item (@data (:k item))]
-      (let [updated-item (update-fn item)]
-        (swap! data assoc (:k item) updated-item)
-        updated-item)))
+  (update! [this q update-fn]
+    (let [items (query this q {})]
+      (doseq [item items]
+        (swap! data update-in [(:id item)] update-fn))))
 
-  #_(fetch [this k] (@data k))
-
-  ;; TODO: add fetch
-  (query [this query]
-    (filter #(= query (select-keys % (keys query))) (vals @data)))
+  (query [this query pagination]
+    (if (spec/valid? :clj-storage.spec/only-id-map query)
+      (@data (:id query))
+      (let [results (filter #(= query (select-keys % (keys query))) (vals @data))]
+        (if-not (empty? pagination)
+          (when (spec/valid? :clj-storage.db.mongo/pagination pagination)
+            (let [max (* (:page pagination (:per-page pagination)))
+                  d (- max (:per-page pagination))]
+              (take (log/spy (:per-page pagination))
+                    (drop (log/spy d) results))))
+          results))))
 
   (delete! [this item]
-    (swap! data dissoc (:k item)))
+    (swap! data dissoc (:id item)))
 
   ;; TODO: maybe add as wrapper function?
   #_(delete-all! [this]
@@ -73,19 +79,25 @@
     ;; TODO: date time add
     (count (filter #(= formula (select-keys % (keys formula))) (vals @data)))))
 
-#_(defn create-memory-store
+(defn create-memory-store
   "Create a memory store"
   ([] (create-memory-store {}))
   ([data]
    ;; TODO: implement ttl and aggregation
    (MemoryStore. (atom data))))
 
-#_(defn create-in-memory-stores [store-names]
-  (zipmap
-   (map #(keyword %) store-names)
-   (repeat (count store-names) (create-memory-store))))
+(defn create-in-memory-stores
+  [store-names]
+  (let [names (spec/assert ::in-memory-store-names store-names)]
+    (zipmap
+     (map #(keyword %) names)
+     (repeat (count names) (create-memory-store)))))
 
+(spec/fdef create-in-memory-stores :args (spec/cat :store-names (spec/coll-of string?)))
 ;; TODO
 #_(defn empty-db-stores! [stores-m]
   (doseq [col (vals stores-m)]
     (delete-all! col)))
+
+;; TODO extract conf
+(spec/check-asserts true)
