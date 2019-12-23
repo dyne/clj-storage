@@ -45,9 +45,10 @@
 (defrecord MemoryStore [data]
   Store
   (store! [this item]
+    (clojure.pprint/pprint this)
     (let [id (or (:id item)
                  (str (java.util.UUID/randomUUID)))]
-      (swap! data assoc id (assoc item :id id))
+      (swap! data assoc-in [id] (assoc item :id id))
       item))
 
   (update! [this q update-fn]
@@ -57,12 +58,12 @@
 
   (query [this query pagination]
     (if (spec/valid? :clj-storage.spec/only-id-map query)
-      (@data (:id query))
+      (-> @data (:id query))
       (let [results (filter #(= query (select-keys % (keys query))) (vals @data))]
         (if-not (empty? pagination)
           (when (spec/valid? :clj-storage.db.mongo/pagination pagination)
             (let [max (* (:page pagination (:per-page pagination)))
-                  d (- max (:per-page pagination))]
+                  d (- (log/spy max) (:per-page pagination))]
               (take (log/spy (:per-page pagination))
                     (drop (log/spy d) results))))
           results))))
@@ -70,6 +71,9 @@
   (delete! [this item]
     (swap! data dissoc (:id item)))
 
+  (aggregate [this formula  params]
+    (let [{:keys [map-fn reduce-fn]} (spec/assert ::in-memory-aggregate-formula formula)]
+         (reduce reduce-fn (map map-fn formula))))
   ;; TODO: maybe add as wrapper function?
   #_(delete-all! [this]
     (reset! data {}))
@@ -79,19 +83,39 @@
     ;; TODO: date time add
     (count (filter #(= formula (select-keys % (keys formula))) (vals @data)))))
 
+
+(defn count-items [in-memory-store q]
+  (let [results (query in-memory-store q {})]
+    ;; TODO: this is all wrong, to be revised later
+    (aggregate (MemoryStore. results)
+               {:map-fn #(count (conj [] %))
+                :reduce-fn +}
+               {})))
+
+#_(defn create-memory-store
+  "Create a memory store"
+  ([name]
+   ;; TODO: implement ttl and aggregation
+   (MemoryStore. (atom {name {}}))))
+
+#_(defn create-in-memory-stores
+  [store-names]
+  (let [names (spec/assert ::in-memory-store-names store-names)]
+    (log/spy (zipmap
+              (map #(keyword %) names)
+              (map #(create-memory-store (keyword %)) names)))))
+
 (defn create-memory-store
   "Create a memory store"
   ([] (create-memory-store {}))
   ([data]
    ;; TODO: implement ttl and aggregation
-   (MemoryStore. (atom data))))
+   (MemoryStore. (atom {}))))
 
-(defn create-in-memory-stores
-  [store-names]
-  (let [names (spec/assert ::in-memory-store-names store-names)]
-    (zipmap
-     (map #(keyword %) names)
-     (repeat (count names) (create-memory-store)))))
+(defn create-in-memory-stores [store-names]
+  (zipmap
+   (map #(keyword %) store-names)
+   (repeat (count store-names) (create-memory-store))))
 
 (spec/fdef create-in-memory-stores :args (spec/cat :store-names (spec/coll-of string?)))
 ;; TODO

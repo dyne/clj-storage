@@ -24,5 +24,7 @@
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
+  :aliases {"test" ["midje"]
+            "test-basic" ["midje" ":config" "test-resources/fast-tests.config"]}
   :profiles {:dev {:dependencies [[midje "1.9.9"]]
-                   :plugins [[lein-midje "3.1.3"]]}})
+                   :plugins [[lein-midje "3.2"]]}})

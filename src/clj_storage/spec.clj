@@ -29,7 +29,6 @@
 
 (spec/def ::page (spec/int-in 0 Integer/MAX_VALUE))
 (spec/def ::per-page (spec/int-in 1 MAX-PER-PAGE))
-
 (spec/def ::id string?)
 (spec/def ::item map?)
 (spec/def ::only-id-map (spec/keys :req [::id]))
@@ -40,3 +39,4 @@
 
 (spec/def :clj-storage.core/unique boolean)
 (spec/def :clj-storage.core/in-memory-store-names (spec/coll-of string?))
+(spec/def :clj-storage.core/in-memory-aggregate-formula (spec/keys :map-fn :reduce-fn))

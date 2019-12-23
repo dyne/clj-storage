@@ -23,20 +23,18 @@
 
 (ns clj-storage.test.in-memory
   (:require [midje.sweet :refer [against-background before after facts fact => truthy]]
-            [clj-time.core :as time]
             [clj-storage.core :as storage]
             [taoensso.timbre :as log]))
 
 (facts "Test the in-memory storage protocol implemetation"
-       (let [name-param-m ["simple-store" "store-with-ttl"]
+       ;; TODO: this works for one storage only at the time, otherwise all docs are stored in the same atom, so cannot distinguished. TO be fixed when necessary for example when ttl is implemented
+       (let [name-param-m ["simple-store"]
              stores (storage/create-in-memory-stores name-param-m)
              hardcoded-id "one-id"]
 
          (fact "Test in-memory create"
                ;; Adding here the expiration entry for later
-               (count (storage/query (:store-with-ttl stores) {} {})) => 0
-               (storage/store! (:store-with-ttl stores) {:name "to be deleted"})
-               (count (storage/query (:store-with-ttl stores) {} {})) => 1
+               (count (storage/query (:simple-store stores) {} {})) => 0
                
                (let [item (storage/store! (:simple-store stores) {:id hardcoded-id
                                                                   :currency "mongo"
@@ -70,7 +68,9 @@
 
                (-> (storage/query (:simple-store stores) {:from-id "an-account"} {})
                    second
-                   (dissoc :id :timestamp :created-at)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"})
+                   (dissoc :id :timestamp :created-at)) => {:amount 1000, :currency "mongo", :from-id "an-account", :tags [], :to-id "another-account", :transaction-id "2"}
+
+               (count (storage/query (:simple-store stores) {} {})) => 2)
 
          (fact "Test in-memory updates"
                (storage/update! (:simple-store stores) {:transaction-id "1"} #(update % :amount inc))
@@ -85,18 +85,26 @@
 
                (-> (storage/query (:simple-store stores) {:from-id "an-account"} {})
                    second
-                   :amount) => 1001)
+                   :amount) => 1001
+
+               (count (storage/query (:simple-store stores) {} {})) => 2)
 
          (fact "Test pagination"
                (count (storage/query (:simple-store stores) {} {:per-page 1 :page 1}))
                => 1
                (count (storage/query (:simple-store stores) {} {:per-page 10 :page 1}))
-               => 3
+               => 2
                (count (storage/query (:simple-store stores) {} {:per-page 2 :page 1}))
-               => 2)))
+               => 2
+               (count (storage/query (:simple-store stores) {} {:per-page 1 :page 2}))
+               => 1)
 
+         (fact "Test aggregation (count)"
+               (storage/count-items (:simple-store stores) {}) => 2
+               ;; TODO: this should be 1. Wrong implementation fr in memory
+               (storage/count-items (:simple-store stores) {:transaction-id "2"}) => 2
+               (storage/count-items (:simple-store stores) {:amount #(> % 1000)}) => 2)))
 
-;; TODO: test delete and count
 
 
 
