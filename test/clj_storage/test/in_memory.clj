@@ -85,7 +85,19 @@
 
                (-> (storage/query (:simple-store stores) {:from-id "an-account"} {})
                    second
-                   :amount) => 1001)))
+                   :amount) => 1001)
+
+         (fact "Test pagination"
+               (count (storage/query (:simple-store stores) {} {:per-page 1 :page 1}))
+               => 1
+               (count (storage/query (:simple-store stores) {} {:per-page 10 :page 1}))
+               => 3
+               (count (storage/query (:simple-store stores) {} {:per-page 2 :page 1}))
+               => 2)))
+
+
+;; TODO: test delete and count
+
 
 
 

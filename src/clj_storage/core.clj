@@ -53,14 +53,19 @@
   (update! [this q update-fn]
     (let [items (query this q {})]
       (doseq [item items]
-        (log/info "ITEM: "item)
         (swap! data update-in [(:id item)] update-fn))))
 
-  ;; TODO add pagination
   (query [this query pagination]
     (if (spec/valid? :clj-storage.spec/only-id-map query)
       (@data (:id query))
-      (filter #(= query (select-keys % (keys query))) (vals @data))))
+      (let [results (filter #(= query (select-keys % (keys query))) (vals @data))]
+        (if-not (empty? pagination)
+          (when (spec/valid? :clj-storage.db.mongo/pagination pagination)
+            (let [max (* (:page pagination (:per-page pagination)))
+                  d (- max (:per-page pagination))]
+              (take (log/spy (:per-page pagination))
+                    (drop (log/spy d) results))))
+          results))))
 
   (delete! [this item]
     (swap! data dissoc (:id item)))
