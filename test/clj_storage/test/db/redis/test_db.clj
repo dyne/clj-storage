@@ -23,29 +23,28 @@
 
 (ns clj-storage.test.db.redis.test-db
   (:require [taoensso.carmine :as car :refer (wcar)]
+            [clj-storage.db.redis :refer [wcar* create-redis-store]]
+            [cheshire.core :as json]
             [taoensso.timbre :as log]))
 
 (def uri "redis://127.0.0.1:6379")
-(def server1-conn {:pool {} :spec {:uri uri}})
-(defmacro wcar* [& body] `(car/wcar server1-conn ~@body))
 
-(def db-and-conn (atom {}))
+(def store-and-conn (atom {}))
 
-(defn get-test-db []
-  (:db @db-and-conn))
+(defn get-test-store []
+  (:store @store-and-conn))
 
-(defn get-test-db-connection []
-  (:conn @db-and-conn))
+(defn get-test-connection []
+  (:conn @store-and-conn))
 
 (defn setup-db []
-  (log/debug "Setting up REDIS test DB")
-  (wcar* (car/ping))
-  #_(->> (m/get-mongo-db-and-conn test-db-uri)
-       (m/drop-db)
-       (reset! db-and-conn)))
+  (log/debug "Connecting to REDIS test DB")
+  (reset! store-and-conn (create-redis-store uri))
+  (log/info "LILILI " (get-test-connection))
+  (log/debug  "Testing connction to redis: " (wcar* (get-test-connection) (car/ping))))
 
-#_(defn teardown-db []
-  (log/debug "Tearing down test DB " @db-and-conn)
-  (m/drop-db @db-and-conn)
-  (m/disconnect (get-test-db-connection))
-  (reset! db-and-conn nil))
+(defn teardown-db []
+  ;; TODO: this still doesnt kill the client (returns 0)
+  (let [client (log/spy (wcar* (get-test-connection) (car/client-list)))
+        client-id (log/spy (-> client (clojure.string/split #"=") second (clojure.string/split #" ") first))]
+    (wcar* (get-test-connection) (car/client-kill "ID" client-id))))

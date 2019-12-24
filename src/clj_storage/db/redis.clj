@@ -23,81 +23,34 @@
 
 (ns clj-storage.db.redis
   (:require [taoensso.carmine :as car :refer (wcar)]
+            [clojure.spec.alpha :as s]
             [clj-storage.core :as storage :refer [Store]]
             [taoensso.timbre :as log]))
 
-#_(defrecord RedisStore [mongo-db coll]
+(defmacro wcar* [conn & body] `(car/wcar ~@conn ~@body))
+
+(defrecord RedisStore [redis-conn]
   Store
-  (store! [this k item]
-    (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))
-        (dissoc :_id)))
-
-  (store-and-create-id! [this item]
-    (mc/insert-and-return mongo-db coll item))
+  (store! [this item]
+    (wcar* (:conn this) (car/set (::key item) (::value item))))
   
-  (update! [this k update-fn]
-    (when-let [item (if (map? k)
-                      (mc/find-one-as-map mongo-db coll k)
-                      (mc/find-map-by-id mongo-db coll k))]
-      (let [updated-item (update-fn item)]
-        (-> (mc/save-and-return mongo-db coll updated-item)
-            (dissoc :_id)))))
+  (update! [this q update-fn]
+    )
 
-  (fetch [this k]
-    (when k
-      (-> (mc/find-map-by-id mongo-db coll k)
-          (dissoc :_id))))
-
-  (query [this query]
-    (->> (mc/find-maps mongo-db coll query)
-         (map #(dissoc % :_id))))
-
-  (list-per-page [this query page per-page]
-    (vec (map
-          ;; TODO: can this be done by the monger query lib?
-          #(dissoc % :_id)
-          (mq/with-collection mongo-db coll
-            (mq/find query)
-            (mq/sort {:timestamp -1})
-            (mq/paginate :page page :per-page per-page)))))
+  (query [this query pagination]
+    (wcar* (:conn this) (car/get (log/spy (::key query)))))
   
-  (delete! [this k]
-    (when k
-      (mc/remove-by-id mongo-db coll k)))
+  (delete! [this item]
+    )
 
-  (delete-all! [this]
-    (mc/remove mongo-db coll))
+  (aggregate [this formula params]
+    )
 
-  (aggregate [this formula]
-    (mc/aggregate mongo-db coll formula))
+  (add-index [this index unique])
 
-  (count-since [this from-date-time formula]
-    (let [dt-condition {:created-at {$gt from-date-time}}]
-      (mc/count mongo-db coll (merge formula
-                                     dt-condition))))
+  (expire [this seconds]))
 
-  (count* [this formula]
-    (mc/count mongo-db coll formula)))
-
-#_(defn create-mongo-store
-  ([mongo-db coll]
-   (create-mongo-store mongo-db coll {}))
-  ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
-   (let [store (MongoStore. mongo-db coll)]
-     (when expireAfterSeconds 
-       (mc/ensure-index mongo-db coll {:created-at 1}
-                        {:expireAfterSeconds expireAfterSeconds}))
-     (when unique-index
-       (doseq [index unique-index] 
-        (mc/ensure-index mongo-db coll (array-map index 1) {:unique true})))
-     store)))
-
-#_(defn create-mongo-stores
-  [db name-param-m]
-  (reduce merge (map
-                 #(let [col-name (key %)
-                        params-m (val %)] 
-                    (hash-map
-                     (keyword col-name)
-                     (create-mongo-store db col-name params-m)))
-                 name-param-m)))
+(defn create-redis-store [uri]
+  (let [conn {:pool {} :spec {:uri uri}}]
+    {:store (RedisStore. conn)
+     :conn conn}))

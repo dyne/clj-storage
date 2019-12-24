@@ -40,3 +40,6 @@
 (spec/def :clj-storage.core/unique boolean)
 (spec/def :clj-storage.core/in-memory-store-names (spec/coll-of string?))
 (spec/def :clj-storage.core/in-memory-aggregate-formula (spec/keys :map-fn :reduce-fn))
+
+(spec/def :clj-storage.db.redis/key string?)
+(spec/def :clj-storage.db.redis/item (spec/keys :req [:clj-storage.db.redis/key :clj-storage.db.redis/value]))
