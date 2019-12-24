@@ -45,7 +45,6 @@
 (defrecord MemoryStore [data]
   Store
   (store! [this item]
-    (clojure.pprint/pprint this)
     (let [id (or (:id item)
                  (str (java.util.UUID/randomUUID)))]
       (swap! data assoc-in [id] (assoc item :id id))
@@ -63,9 +62,9 @@
         (if-not (empty? pagination)
           (when (spec/valid? :clj-storage.db.mongo/pagination pagination)
             (let [max (* (:page pagination (:per-page pagination)))
-                  d (- (log/spy max) (:per-page pagination))]
-              (take (log/spy (:per-page pagination))
-                    (drop (log/spy d) results))))
+                  d (- max (:per-page pagination))]
+              (take (:per-page pagination)
+                    (drop d results))))
           results))))
 
   (delete! [this item]
