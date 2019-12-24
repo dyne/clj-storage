@@ -23,81 +23,54 @@
 
 (ns clj-storage.db.redis
   (:require [taoensso.carmine :as car :refer (wcar)]
+
+            [clojure.spec.alpha :as spec]
+            [clj-storage.spec]
+            
             [clj-storage.core :as storage :refer [Store]]
+            
             [taoensso.timbre :as log]))
 
-#_(defrecord RedisStore [mongo-db coll]
+(defmacro wcar* [conn & body] `(car/wcar ~@conn ~@body))
+
+(defrecord RedisStore [redis-conn]
   Store
-  (store! [this k item]
-    (-> (mc/insert-and-return mongo-db coll (assoc item :_id (k item)))
-        (dissoc :_id)))
-
-  (store-and-create-id! [this item]
-    (mc/insert-and-return mongo-db coll item))
+  (store! [database item]
+    (spec/assert ::item item)
+    (wcar* (:conn database) (car/set (:key item) (:value item))))
   
-  (update! [this k update-fn]
-    (when-let [item (if (map? k)
-                      (mc/find-one-as-map mongo-db coll k)
-                      (mc/find-map-by-id mongo-db coll k))]
-      (let [updated-item (update-fn item)]
-        (-> (mc/save-and-return mongo-db coll updated-item)
-            (dissoc :_id)))))
+  (update! [database q update-fn]
+    )
 
-  (fetch [this k]
-    (when k
-      (-> (mc/find-map-by-id mongo-db coll k)
-          (dissoc :_id))))
-
-  (query [this query]
-    (->> (mc/find-maps mongo-db coll query)
-         (map #(dissoc % :_id))))
-
-  (list-per-page [this query page per-page]
-    (vec (map
-          ;; TODO: can this be done by the monger query lib?
-          #(dissoc % :_id)
-          (mq/with-collection mongo-db coll
-            (mq/find query)
-            (mq/sort {:timestamp -1})
-            (mq/paginate :page page :per-page per-page)))))
+  (query [database query pagination]
+    ;; TODO: maybe add multiple keys query (MGET) and pagination?
+    (if (spec/valid? :clj-storage.spec/only-key-map query)
+      (wcar* (:conn database) (car/get (:key query)))
+      (if (spec/valid? :clj-storage.spec/multiple-keys query)
+        (wcar* (:conn database) (apply car/mget (:keys query)))
+        nil)))
   
-  (delete! [this k]
-    (when k
-      (mc/remove-by-id mongo-db coll k)))
+  (delete! [database item]
+    (spec/assert :clj-storage.spec/only-key-map item)
+    (wcar* (:conn database) (car/del (:key item))))
 
-  (delete-all! [this]
-    (mc/remove mongo-db coll))
+  (aggregate [database formula params]
+    )
 
-  (aggregate [this formula]
-    (mc/aggregate mongo-db coll formula))
+  (add-index [database index unique])
 
-  (count-since [this from-date-time formula]
-    (let [dt-condition {:created-at {$gt from-date-time}}]
-      (mc/count mongo-db coll (merge formula
-                                     dt-condition))))
+  (expire [database seconds]))
 
-  (count* [this formula]
-    (mc/count mongo-db coll formula)))
+(defn count-keys [database]
+  (wcar* (:conn database) (car/dbsize)))
 
-#_(defn create-mongo-store
-  ([mongo-db coll]
-   (create-mongo-store mongo-db coll {}))
-  ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
-   (let [store (MongoStore. mongo-db coll)]
-     (when expireAfterSeconds 
-       (mc/ensure-index mongo-db coll {:created-at 1}
-                        {:expireAfterSeconds expireAfterSeconds}))
-     (when unique-index
-       (doseq [index unique-index] 
-        (mc/ensure-index mongo-db coll (array-map index 1) {:unique true})))
-     store)))
+(defn get-all-keys [database]
+  (wcar* (:conn database) (car/keys "*")))
 
-#_(defn create-mongo-stores
-  [db name-param-m]
-  (reduce merge (map
-                 #(let [col-name (key %)
-                        params-m (val %)] 
-                    (hash-map
-                     (keyword col-name)
-                     (create-mongo-store db col-name params-m)))
-                 name-param-m)))
+(defn create-redis-database [uri]
+  (let [conn {:pool {} :spec {:uri uri}}]
+    {:store (RedisStore. conn)
+     :conn conn}))
+
+;; TODO extract conf
+(spec/check-asserts true)

@@ -15,12 +15,15 @@
                  ;; mongodb
                  [org.clojars.dyne/monger "3.2.0-SNAPSHOT"]
                  [cheshire "5.3.1"]
-                 
+
                  ;; file storage
                  [com.taoensso/nippy "2.14.0"]
 
                  ;; redis
-                 [com.taoensso/carmine "2.19.1"]]
+                 [com.taoensso/carmine "2.19.1"]
+
+                 ;; sqlite
+                 [seancorfield/next.jdbc "1.0.12"]]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]

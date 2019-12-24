@@ -32,6 +32,10 @@
 (spec/def ::id string?)
 (spec/def ::item map?)
 (spec/def ::only-id-map (spec/keys :req [::id]))
+(spec/def ::key keyword?)
+(spec/def ::only-key-map (spec/keys :req-un [:clj-storage.spec/key]))
+(spec/def ::keys vector?)
+(spec/def ::multiple-keys (spec/keys :req [::keys]))
 
 (spec/def :clj-storage.db.mongo/pagination (spec/keys :page :per-page))
 (spec/def :clj-storage.db.mongo/store-params (spec/keys :opt [::id]))
@@ -40,3 +44,6 @@
 (spec/def :clj-storage.core/unique boolean)
 (spec/def :clj-storage.core/in-memory-store-names (spec/coll-of string?))
 (spec/def :clj-storage.core/in-memory-aggregate-formula (spec/keys :map-fn :reduce-fn))
+
+(spec/def ::key string?)
+(spec/def :clj-storage.db.redis/item (spec/keys :key :value))

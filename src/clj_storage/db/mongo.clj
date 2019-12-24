@@ -51,7 +51,7 @@
 
 (defrecord MongoStore [mongo-db coll]
   Store
-  (store! [this item]
+  (store! [collection item]
     ;; always add a created-at field, in case we need expiration
     (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
       (if (and (:id item) (spec/valid? map? item))
@@ -60,12 +60,12 @@
                 (dissoc :id)))
         (mc/insert-and-return mongo-db coll item-with-timestamp))))
 
-  (update! [this query update-fn]
+  (update! [collection query update-fn]
     (mc/update mongo-db coll query update-fn  {:multi true}))
   
-  (query [this query pagination]
+  (query [collection query pagination]
     (if (empty? pagination)
-      (if (spec/valid? :clj-storage.spec/only-id-map query)
+      (if (spec/valid? :clj-storage.spec/only-id-map (log/spy query))
         (-> (mc/find-map-by-id mongo-db coll (:id query))
             (dissoc :_id))
         (->> (mc/find-maps mongo-db coll query)
@@ -76,7 +76,7 @@
           (mq/sort {:timestamp -1})
           (mq/paginate :page (:page pagination) :per-page (:per-page pagination))))))
   
-  (delete! [this item]
+  (delete! [collection item]
     (if (spec/valid? :clj-storage.spec/only-id-map item) 
       (mc/remove-by-id mongo-db coll (:id item))
       (mc/remove mongo-db coll item)))
@@ -87,14 +87,14 @@
     (mc/remove mongo-db coll))
 
   ;; TODO: remove params?
-  (aggregate [this formula params]
+  (aggregate [collection formula params]
     (mc/aggregate mongo-db coll formula))
 
-  (add-index [this index unique]
+  (add-index [collection index unique]
     (when (spec/valid? :clj-storage.core/unique unique)
       (mc/ensure-index mongo-db coll (array-map index 1) {:unique unique})))
 
-  (expire [this seconds]
+  (expire [collection seconds]
     (mc/ensure-index mongo-db coll {:created-at 1} {:expireAfterSeconds seconds})))
 
 (defn count-items [mongo-store query]
