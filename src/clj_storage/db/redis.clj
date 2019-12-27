@@ -31,24 +31,24 @@
 
 (defrecord RedisStore [redis-conn]
   Store
-  (store! [this item]
     (wcar* (:conn this) (car/set (::key item) (::value item))))
+  (store! [database item]
   
-  (update! [this q update-fn]
+  (update! [database q update-fn]
     )
 
-  (query [this query pagination]
     (wcar* (:conn this) (car/get (log/spy (::key query)))))
+  (query [database query pagination]
   
-  (delete! [this item]
     )
+  (delete! [database item]
 
   (aggregate [this formula params]
     )
 
-  (add-index [this index unique])
+  (add-index [database index unique])
 
-  (expire [this seconds]))
+  (expire [database seconds]))
 
 (defn create-redis-store [uri]
   (let [conn {:pool {} :spec {:uri uri}}]
