@@ -23,34 +23,54 @@
 
 (ns clj-storage.db.redis
   (:require [taoensso.carmine :as car :refer (wcar)]
-            [clojure.spec.alpha :as s]
+
+            [clojure.spec.alpha :as spec]
+            [clj-storage.spec]
+            
             [clj-storage.core :as storage :refer [Store]]
+            
             [taoensso.timbre :as log]))
 
 (defmacro wcar* [conn & body] `(car/wcar ~@conn ~@body))
 
 (defrecord RedisStore [redis-conn]
   Store
-    (wcar* (:conn this) (car/set (::key item) (::value item))))
   (store! [database item]
+    (spec/assert ::item item)
+    (wcar* (:conn database) (car/set (:key item) (:value item))))
   
   (update! [database q update-fn]
     )
 
-    (wcar* (:conn this) (car/get (log/spy (::key query)))))
   (query [database query pagination]
+    ;; TODO: maybe add multiple keys query (MGET) and pagination?
+    (if (spec/valid? :clj-storage.spec/only-key-map query)
+      (wcar* (:conn database) (car/get (:key query)))
+      (if (spec/valid? :clj-storage.spec/multiple-keys query)
+        (wcar* (:conn database) (apply car/mget (:keys query)))
+        nil)))
   
-    )
   (delete! [database item]
+    (spec/assert :clj-storage.spec/only-key-map item)
+    (wcar* (:conn database) (car/del (:key item))))
 
-  (aggregate [this formula params]
+  (aggregate [database formula params]
     )
 
   (add-index [database index unique])
 
   (expire [database seconds]))
 
-(defn create-redis-store [uri]
+(defn count-keys [database]
+  (wcar* (:conn database) (car/dbsize)))
+
+(defn get-all-keys [database]
+  (wcar* (:conn database) (car/keys "*")))
+
+(defn create-redis-database [uri]
   (let [conn {:pool {} :spec {:uri uri}}]
     {:store (RedisStore. conn)
      :conn conn}))
+
+;; TODO extract conf
+(spec/check-asserts true)

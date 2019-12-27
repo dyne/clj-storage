@@ -23,11 +23,12 @@
 
 (ns clj-storage.test.db.redis.test-db
   (:require [taoensso.carmine :as car :refer (wcar)]
-            [clj-storage.db.redis :refer [wcar* create-redis-store]]
+            [clj-storage.db.redis :refer [wcar* create-redis-database]]
             [cheshire.core :as json]
             [taoensso.timbre :as log]))
 
-(def uri "redis://127.0.0.1:6379")
+;; Redis holds by default up to 16 dbs. First one here is indicated by the /0
+(def uri "redis://127.0.0.1:6379/0")
 
 (def store-and-conn (atom {}))
 
@@ -39,8 +40,7 @@
 
 (defn setup-db []
   (log/debug "Connecting to REDIS test DB")
-  (reset! store-and-conn (create-redis-store uri))
-  (log/info "LILILI " (get-test-connection))
+  (reset! store-and-conn (create-redis-database uri))
   (log/debug  "Testing connction to redis: " (wcar* (get-test-connection) (car/ping))))
 
 (defn teardown-db []

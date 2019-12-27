@@ -23,9 +23,12 @@
 
 (ns clj-storage.test.db.redis
   (:require [midje.sweet :refer [against-background before after facts fact => truthy]]
+
             [clj-storage.core :as storage]
-            [clj-storage.db.redis :as r]
+            [clj-storage.db.redis :as redis]
             [clj-storage.test.db.redis.test-db :as test-db]
+            [clj-storage.spec]
+
             [taoensso.timbre :as log]))
 (against-background [(before :contents (test-db/setup-db))
                      (after :contents (test-db/teardown-db))]
@@ -35,13 +38,14 @@
 
                              (fact "Test mongo stores creation"
                                    ;; insert document so store is created
-                                   (storage/store! (test-db/get-test-store) {:clj-storage.db.redis/key "foo"
-                                                                             :clj-storage.db.redis/value "bar"}) => "OK"
-                                   (storage/query (test-db/get-test-store) {:clj-storage.db.redis/key "foo"} {}) => "bar"
-                                   
-                                   ;; TODO here redis related queries    
+                                   (storage/store! (test-db/get-test-store) {:key "foo"
+                                                                             :value "bar"}) => "OK"
+                                   (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
+                                   ;; TODO: why also nil key?
+                                   (redis/count-keys (test-db/get-test-store)) => 2
+                                   (redis/get-all-keys (test-db/get-test-store)) => [nil "foo"]
 
-                                   ;; TODO count many documents
+                                   ;; TODO: here add multi-add keys
                                    )
 
                              #_(facts "Test expiration" :slow
