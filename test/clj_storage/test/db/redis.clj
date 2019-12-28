@@ -29,23 +29,31 @@
             [clj-storage.test.db.redis.test-db :as test-db]
             [clj-storage.spec]
 
+            [taoensso.carmine :as car :refer (wcar)]
             [taoensso.timbre :as log]))
+
 (against-background [(before :contents (test-db/setup-db))
                      (after :contents (test-db/teardown-db))]
 
                     (facts "Test the redis protocol implemetation"
                            (let [hardcoded-id "one-id"]
 
-                             (fact "Test mongo stores creation"
+                             (fact "Test mongo stores creation and fetch"
                                    ;; insert document so store is created
                                    (storage/store! (test-db/get-test-store) {:key "foo"
                                                                              :value "bar"}) => "OK"
                                    (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
                                    (redis/count-keys (test-db/get-test-store)) => 1
-                                   (redis/get-all-keys (test-db/get-test-store)) => ["foo"]
+                                   (redis/get-all-keys (test-db/get-test-store)) => ["foo"])
 
-                                   ;; TODO: here add multi-add keys
-                                   )
+                             (fact "Add more key-value pairs and do a query that results in multiple"
+                                   (doseq [n (range 10)]
+                                     (storage/store! (test-db/get-test-store) {:key (java.util.UUID/randomUUID)
+                                                                               :value (str "value" n)}) => "OK")
+                                   (redis/count-keys (test-db/get-test-store)) => 11
+
+                                   (let [ks (redis/get-all-keys (test-db/get-test-store))]
+                                     (count (storage/query (test-db/get-test-store) {:keys (take 5 ks)} {})) => 5))
 
                              #_(facts "Test expiration" :slow
                                     (fact "Wait for 90 seconds to check that item is deleted after expiration" :slow
