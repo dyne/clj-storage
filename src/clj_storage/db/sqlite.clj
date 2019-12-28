@@ -25,16 +25,28 @@
 (ns clj-storage.db.sqlite
   (:require [clj-storage.core :as storage :refer [Store]]
             [clj-storage.spec]
+            [next.jdbc :as sql]
+            [clj-storage.spec]
             [clojure.spec.alpha :as spec]
-            [taoensso.timbre :as log]))
+            ; [taoensso.timbre :as log]
+            ))
 
 
-(defrecord SqliteStore []
+(defrecord SqliteStore [ds]
   Store
-  (store! [this item])
-  (update! [this query update-fn])
-  (query [this query pagination])
-  (delete! [this item])
+  (store! [this item]
+          ;; always add a created-at field, in case we need expiration
+    (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
+      (sql/insert! ds this item-with-timestamp)))
+  (update! [this query update-fn]
+    (sql/update! ds this update-fn query))
+  ; Pagination not added yet
+  (query [this query pagination]
+    (if (spec/valid? :clj-storage.spec/only-id-map query)
+      (sql/get-by-id ds this (:id query))
+      (sql/find-by-keys ds this query)))
+  (delete! [this item]
+    (sql/delete! ds this item))
   (aggregate [this formula params])
   (add-index [this index unique])
   (expire [this seconds]))
