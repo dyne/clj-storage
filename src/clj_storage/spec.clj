@@ -34,8 +34,8 @@
 (spec/def ::only-id-map (spec/keys :req [::id]))
 (spec/def ::key keyword?)
 (spec/def ::only-key-map (spec/keys :req-un [:clj-storage.spec/key]))
-(spec/def ::keys vector?)
-(spec/def ::multiple-keys (spec/keys :req [::keys]))
+(spec/def ::keys coll?)
+(spec/def ::multiple-keys (spec/keys :req-un [:clj-storage.spec/keys]))
 
 (spec/def :clj-storage.db.mongo/pagination (spec/keys :page :per-page))
 (spec/def :clj-storage.db.mongo/store-params (spec/keys :opt [::id]))
