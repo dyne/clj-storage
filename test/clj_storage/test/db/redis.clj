@@ -41,9 +41,8 @@
                                    (storage/store! (test-db/get-test-store) {:key "foo"
                                                                              :value "bar"}) => "OK"
                                    (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
-                                   ;; TODO: why also nil key?
-                                   (redis/count-keys (test-db/get-test-store)) => 2
-                                   (redis/get-all-keys (test-db/get-test-store)) => [nil "foo"]
+                                   (redis/count-keys (test-db/get-test-store)) => 1
+                                   (redis/get-all-keys (test-db/get-test-store)) => ["foo"]
 
                                    ;; TODO: here add multi-add keys
                                    )

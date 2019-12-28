@@ -28,7 +28,7 @@
             [taoensso.timbre :as log]))
 
 ;; Redis holds by default up to 16 dbs. First one here is indicated by the /0
-(def uri "redis://127.0.0.1:6379/0")
+(def uri "redis://127.0.0.1:6379/1")
 
 (def store-and-conn (atom {}))
 
@@ -39,7 +39,7 @@
   (:conn @store-and-conn))
 
 (defn setup-db []
-  (log/debug "Connecting to REDIS test DB")
+  (log/debug "Connecting to REDIS test DB " uri)
   (reset! store-and-conn (create-redis-database uri))
   (log/debug  "Testing connction to redis: " (wcar* (get-test-connection) (car/ping))))
 
@@ -47,4 +47,5 @@
   ;; TODO: this still doesnt kill the client (returns 0)
   (let [client (log/spy (wcar* (get-test-connection) (car/client-list)))
         client-id (log/spy (-> client (clojure.string/split #"=") second (clojure.string/split #" ") first))]
+    (wcar* (get-test-connection) (car/flushdb))
     (wcar* (get-test-connection) (car/client-kill "ID" client-id))))
