@@ -39,11 +39,33 @@
     (spec/assert ::item item)
     (wcar* (:conn database) (car/set (:key item) (:value item))))
   
-  (update! [database q update-fn]
-    )
+  (update! [database query update-fn]
+    ;;; Atomically increment integer key without using INCR
+    (let [k (:key query)]
+      (wcar* (:conn database) (car/atomic {} 100 ; Retry <= 100 times on failed optimistic lock, or throw ex
+
+                                  (car/watch k) ; Watch key for changes
+                                  (let [;; You can grab the value of the watched key using
+                                        ;; `with-replies` (on the current connection), or
+                                        ;; a nested `wcar` (on a new connection):
+                                        curr-val (car/with-replies (car/get k))]
+
+                                    (car/return curr-val)
+
+                                    (car/multi) ; Start the transaction
+                                    (car/set k (update-fn curr-val))
+                                    (car/get k)))))
+    #_(if (spec/valid? :clj-storage.spec/only-key-map query)
+      (car/atomic )
+      (wcar* (:conn database)
+             (car/get (:key query))
+             ())
+      (if (spec/valid? :clj-storage.spec/multiple-keys query)
+        (wcar* (:conn database) (apply car/mget (:keys query)))
+        nil)))
 
   (query [database query pagination]
-    ;; TODO: maybe add multiple keys query (MGET) and pagination?
+    ;; TODO: pagination?
     (if (spec/valid? :clj-storage.spec/only-key-map query)
       (wcar* (:conn database) (car/get (:key query)))
       (if (spec/valid? :clj-storage.spec/multiple-keys query)

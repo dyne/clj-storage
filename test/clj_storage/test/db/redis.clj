@@ -54,6 +54,21 @@
 
                                    (let [ks (redis/get-all-keys (test-db/get-test-store))]
                                      (count (storage/query (test-db/get-test-store) {:keys (take 5 ks)} {})) => 5))
+                             (fact "Test one key value atomic update."
+                                   
+                                   (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
+                                   ;; WHat is should be without updating in redis
+                                   (let [update-fn #(str % "bar")]
+                                     (update-fn (storage/query (test-db/get-test-store) {:key "foo"} {})) => "barbar"
+                                     ;; Now update and check if it is indeed the same
+                                     (storage/update! (test-db/get-test-store) {:key "foo"} update-fn) => "barbar")
+                                   ;; TODO: maybe spawn a thread that changes in the same time, check that lock works indeed
+                                   
+                                   
+                                   #_(let [item (first (storage/query (:transaction-store stores) {:transaction-id "2"} {}))
+                                         updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
+                                     (:amount updated-item) => 1001)
+                                   )
 
                              #_(facts "Test expiration" :slow
                                     (fact "Wait for 90 seconds to check that item is deleted after expiration" :slow
