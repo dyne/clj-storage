@@ -94,7 +94,7 @@
     (when (spec/valid? :clj-storage.core/unique unique)
       (mc/ensure-index mongo-db coll (array-map index 1) {:unique unique})))
 
-  (expire [collection seconds]
+  (expire [collection seconds params]
     (mc/ensure-index mongo-db coll {:created-at 1} {:expireAfterSeconds seconds})))
 
 (defn count-items [mongo-store query]
@@ -125,7 +125,7 @@
   ([mongo-db coll {:keys [expireAfterSeconds unique-index]}]
    (let [store (MongoStore. mongo-db coll)]
      (when expireAfterSeconds
-       (storage/expire store expireAfterSeconds))
+       (storage/expire store expireAfterSeconds {}))
      (when unique-index
        (doseq [index unique-index]
          (storage/add-index store index true)))
