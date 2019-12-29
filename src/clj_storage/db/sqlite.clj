@@ -49,4 +49,4 @@
     (sql/delete! ds this item))
   (aggregate [this formula params])
   (add-index [this index unique])
-  (expire [this seconds]))
+  (expire [this seconds params]))

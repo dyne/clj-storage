@@ -39,7 +39,7 @@
     "Process data aggregate and return computed results")
   (add-index [s index unique]
     "Add an index to a storage s. Unique can be true or false")
-  (expire [s seconds]
+  (expire [s seconds params]
     "Expire items of this storage after seconds")) 
 
 (defrecord MemoryStore [data]

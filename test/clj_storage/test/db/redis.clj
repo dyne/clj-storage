@@ -29,7 +29,6 @@
             [clj-storage.test.db.redis.test-db :as test-db]
             [clj-storage.spec]
 
-            [taoensso.carmine :as car :refer (wcar)]
             [taoensso.timbre :as log]))
 
 (against-background [(before :contents (test-db/setup-db))
@@ -75,9 +74,14 @@
                                      (storage/update! (test-db/get-test-store) {:keys some-keys} update-fn)
                                      (storage/query (test-db/get-test-store) {:keys some-keys} {}) => updated-values))
 
-                             #_(facts "Test expiration" :slow
-                                    (fact "Wait for 90 seconds to check that item is deleted after expiration" :slow
+                             (facts "Test expiration" :slow
+                                    (fact "Wait for 10 seconds to check that item is deleted after expiration" :slow
                                           
-                                          ;; TTL is set to 30 seconds but mongo checks only every ~60 secs
-                                          (Thread/sleep (* 90 1000))
-                                          (count (storage/query (:store-with-ttl stores) {} {})) => 0)))))
+                                          (-> (storage/query (test-db/get-test-store) {:key "foo"} {})
+                                              (clojure.string/starts-with? "barbar")) = true
+
+                                          (storage/expire (test-db/get-test-store) 3 {:keys ["foo"]}) => 1
+                                          
+                                          ;; TTL  for redis should be accuate to the second "Since Redis 2.6 the expire error is from 0 to 1 milliseconds."
+                                          (Thread/sleep (* 10 1000))
+                                          (storage/query (test-db/get-test-store) {:key "foo"} {}) => nil)))))
