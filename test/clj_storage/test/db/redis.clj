@@ -65,12 +65,15 @@
                                      (count (redis/get-all-keys (test-db/get-test-store))) => 11
                                      (storage/query (test-db/get-test-store) {:key "foo"} {}) => "barbar")
                                    ;; TODO: maybe spawn a thread that changes in the same time, check that lock works indeed
-                                   
-                                   
-                                  #_(let [item (first (storage/query (:transaction-store stores) {:transaction-id "2"} {}))
-                                         updated-item ((fn [doc] (update doc :amount #(+ % 1))) item)]
-                                     (:amount updated-item) => 1001)
                                    )
+                             (fact "Test multiple values atomic update."
+                                   (let [some-keys (take 3 (redis/get-all-keys (test-db/get-test-store)))
+                                         their-values (storage/query (test-db/get-test-store) {:keys some-keys} {})
+                                         update-fn #(str % "bar")
+                                         updated-values (mapv (fn [v] (update-fn v)) their-values)]
+
+                                     (storage/update! (test-db/get-test-store) {:keys some-keys} update-fn)
+                                     (storage/query (test-db/get-test-store) {:keys some-keys} {}) => updated-values))
 
                              #_(facts "Test expiration" :slow
                                     (fact "Wait for 90 seconds to check that item is deleted after expiration" :slow
