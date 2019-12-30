@@ -89,8 +89,8 @@
   (add-index [database index unique])
 
   (expire [database seconds params]
-    (when (spec/valid? :clj-storage.spec/multiple-keys params)
-      (wcar* (:conn database) (mapv #(car/expire % seconds) (:keys params))))))
+    (spec/assert :clj-storage.spec/multiple-keys params)
+    (wcar* (:conn database) (mapv #(car/expire % seconds) (:keys params)))))
 
 (defn count-keys [database]
   (wcar* (:conn database) (car/dbsize)))
