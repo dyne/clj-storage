@@ -65,7 +65,7 @@
   
   (query [collection query pagination]
     (if (empty? pagination)
-      (if (spec/valid? :clj-storage.spec/only-id-map (log/spy query))
+      (if (spec/valid? :clj-storage.spec/only-id-map query)
         (-> (mc/find-map-by-id mongo-db coll (:id query))
             (dissoc :_id))
         (->> (mc/find-maps mongo-db coll query)
