@@ -72,7 +72,7 @@
                                               (car/mget (:keys query))))))))
 
   (query [database query pagination]
-    ;; TODO: pagination?
+    ;; pagination for redis is only applicable for specific commands check https://christophermcdowell.dev/post/pagination-with-redis/
     (if (spec/valid? :clj-storage.spec/only-key-map query)
       (wcar* (:conn database) (car/get (:key query)))
       (if (spec/valid? :clj-storage.spec/multiple-keys query)
@@ -84,9 +84,11 @@
     (wcar* (:conn database) (car/del (:key item))))
 
   (aggregate [database formula params]
-    )
+    (log/warn "Not implemented yet. Redis aggregates are specific to specific types like sorted sets https://redis.io/commands/zunionstore. Another option is lua scripts like https://github.com/ptaoussanis/carmine#lua."))
 
-  (add-index [database index unique])
+  (add-index [database index params]
+    (spec/assert ::index-params params)
+    (wcar* (:conn database) (car/zadd index (:score params) (:member params))))
 
   (expire [database seconds params]
     (spec/assert :clj-storage.spec/multiple-keys params)
@@ -97,6 +99,9 @@
 
 (defn get-all-keys [database]
   (wcar* (:conn database) (car/keys "*")))
+
+(defn count-sorted-set [database key]
+  (wcar* (:conn database) (car/zcard key)))
 
 (defn create-redis-database [uri]
   (let [conn {:pool {} :spec {:uri uri}}]

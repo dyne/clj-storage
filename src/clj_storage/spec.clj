@@ -36,14 +36,17 @@
 (spec/def ::only-key-map (spec/keys :req-un [:clj-storage.spec/key]))
 (spec/def ::keys coll?)
 (spec/def ::multiple-keys (spec/keys :req-un [:clj-storage.spec/keys]))
+(spec/def ::unique boolean?)
+(spec/def ::key string?)
 
+(spec/def :clj-storage.db.mongo/index-params (spec/keys :opt [::unique]))
 (spec/def :clj-storage.db.mongo/pagination (spec/keys :page :per-page))
 (spec/def :clj-storage.db.mongo/store-params (spec/keys :opt [::id]))
 (spec/def :clj-storage.db.mongo/store (spec/keys :req [::store ::item :clj-storage.db.mongo/store-params]))
 
-(spec/def :clj-storage.core/unique boolean)
+(spec/def :clj-storage.core/unique boolean?)
 (spec/def :clj-storage.core/in-memory-store-names (spec/coll-of string?))
 (spec/def :clj-storage.core/in-memory-aggregate-formula (spec/keys :map-fn :reduce-fn))
 
-(spec/def ::key string?)
+(spec/def :clj-storage.db.redis/index-params (spec/keys :req-un [:clj-storage.spec/score :clj-storage.spec/member]))
 (spec/def :clj-storage.db.redis/item (spec/keys :key :value))

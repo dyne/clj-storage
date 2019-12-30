@@ -90,9 +90,9 @@
   (aggregate [collection formula params]
     (mc/aggregate mongo-db coll formula))
 
-  (add-index [collection index unique]
-    (when (spec/valid? :clj-storage.core/unique unique)
-      (mc/ensure-index mongo-db coll (array-map index 1) {:unique unique})))
+  (add-index [collection index params]
+    (when (spec/valid? ::index-params params)
+      (mc/ensure-index mongo-db coll (array-map index 1) {:unique (or false (:unique params))})))
 
   (expire [collection seconds params]
     (mc/ensure-index mongo-db coll {:created-at 1} {:expireAfterSeconds seconds})))
@@ -128,7 +128,7 @@
        (storage/expire store expireAfterSeconds {}))
      (when unique-index
        (doseq [index unique-index]
-         (storage/add-index store index true)))
+         (storage/add-index store index {:unique true})))
      store )))
 
 (defn create-mongo-stores

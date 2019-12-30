@@ -37,8 +37,8 @@
     "Delete item from a storage s")
   (aggregate [s formula params]
     "Process data aggregate and return computed results")
-  (add-index [s index unique]
-    "Add an index to a storage s. Unique can be true or false")
+  (add-index [s index params]
+    "Add an index to a storage s. The map parameter can differ per db implementation")
   (expire [s seconds params]
     "Expire items of this storage after seconds")) 
 
