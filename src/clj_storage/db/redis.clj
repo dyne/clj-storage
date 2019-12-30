@@ -86,7 +86,9 @@
   (aggregate [database formula params]
     )
 
-  (add-index [database index unique])
+  (add-index [database index params]
+    (spec/assert ::index-params params)
+    (wcar* (:conn database) (car/zadd index (:score params) (:member params))))
 
   (expire [database seconds params]
     (spec/assert :clj-storage.spec/multiple-keys params)
@@ -97,6 +99,9 @@
 
 (defn get-all-keys [database]
   (wcar* (:conn database) (car/keys "*")))
+
+(defn count-sorted-set [database key]
+  (wcar* (:conn database) (car/zcard key)))
 
 (defn create-redis-database [uri]
   (let [conn {:pool {} :spec {:uri uri}}]

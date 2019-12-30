@@ -35,53 +35,68 @@
                      (after :contents (test-db/teardown-db))]
 
                     (facts "Test the redis protocol implemetation"
-                           (let [hardcoded-id "one-id"]
+                           (fact "Test mongo stores creation and fetch"
+                                 ;; insert document so store is created
+                                 (storage/store! (test-db/get-test-store) {:key "foo"
+                                                                           :value "bar"}) => "OK"
+                                 (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
+                                 (redis/count-keys (test-db/get-test-store)) => 1
+                                 (redis/get-all-keys (test-db/get-test-store)) => ["foo"]
 
-                             (fact "Test mongo stores creation and fetch"
-                                   ;; insert document so store is created
-                                   (storage/store! (test-db/get-test-store) {:key "foo"
-                                                                             :value "bar"}) => "OK"
-                                   (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
-                                   (redis/count-keys (test-db/get-test-store)) => 1
-                                   (redis/get-all-keys (test-db/get-test-store)) => ["foo"])
+                                 ;; Try to add other types, for example maps and sets
+                                 (storage/store! (test-db/get-test-store) {:key "mymap"
+                                                                           :value {:name "my-name"
+                                                                                   :age 56}})
+                                 (storage/query (test-db/get-test-store) {:key "mymap"} {}) => {:name "my-name"
+                                                                                                :age 56}
+                                 (storage/store! (test-db/get-test-store) {:key "myset"
+                                                                           :value #{:a :b :c}})
 
-                             (fact "Add more key-value pairs and do a query that results in multiple"
-                                   (doseq [n (range 10)]
-                                     (storage/store! (test-db/get-test-store) {:key (java.util.UUID/randomUUID)
-                                                                               :value (str "value" n)}) => "OK")
-                                   (redis/count-keys (test-db/get-test-store)) => 11
+                                 (storage/query (test-db/get-test-store) {:key "myset"} {}) => #{:a :b :c})
 
-                                   (let [ks (redis/get-all-keys (test-db/get-test-store))]
-                                     (count (storage/query (test-db/get-test-store) {:keys (take 5 ks)} {})) => 5))
-                             (fact "Test one key value atomic update."
-                                   
-                                   (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
-                                   ;; WHat is should be without updating in redis
-                                   (let [update-fn #(str % "bar")]
-                                     (update-fn (storage/query (test-db/get-test-store) {:key "foo"} {})) => "barbar"
-                                     ;; Now update and check if it is indeed the same
-                                     (storage/update! (test-db/get-test-store) {:key "foo"} update-fn)
-                                     (count (redis/get-all-keys (test-db/get-test-store))) => 11
-                                     (storage/query (test-db/get-test-store) {:key "foo"} {}) => "barbar")
-                                   ;; TODO: maybe spawn a thread that changes in the same time, check that lock works indeed
-                                   )
-                             (fact "Test multiple values atomic update."
-                                   (let [some-keys (take 3 (redis/get-all-keys (test-db/get-test-store)))
-                                         their-values (storage/query (test-db/get-test-store) {:keys some-keys} {})
-                                         update-fn #(str % "bar")
-                                         updated-values (mapv (fn [v] (update-fn v)) their-values)]
+                           (fact "Add more key-value pairs and do a query that results in multiple"
+                                 (doseq [n (range 10)]
+                                   (storage/store! (test-db/get-test-store) {:key (java.util.UUID/randomUUID)
+                                                                             :value (str "value" n)}) => "OK")
+                                 (redis/count-keys (test-db/get-test-store)) => 13
 
-                                     (storage/update! (test-db/get-test-store) {:keys some-keys} update-fn)
-                                     (storage/query (test-db/get-test-store) {:keys some-keys} {}) => updated-values))
+                                 (let [ks (redis/get-all-keys (test-db/get-test-store))]
+                                   (count (storage/query (test-db/get-test-store) {:keys (take 5 ks)} {})) => 5))
+                           (fact "Test one key value atomic update."
+                                 
+                                 (storage/query (test-db/get-test-store) {:key "foo"} {}) => "bar"
+                                 ;; WHat is should be without updating in redis
+                                 (let [update-fn #(str % "bar")]
+                                   (update-fn (storage/query (test-db/get-test-store) {:key "foo"} {})) => "barbar"
+                                   ;; Now update and check if it is indeed the same
+                                   (storage/update! (test-db/get-test-store) {:key "foo"} update-fn)
+                                   (count (redis/get-all-keys (test-db/get-test-store))) => 13
+                                   (storage/query (test-db/get-test-store) {:key "foo"} {}) => "barbar")
+                                 ;; TODO: maybe spawn a thread that changes in the same time, check that lock works indeed
+                                 )
+                           (fact "Test multiple values atomic update."
+                                 (let [some-keys (take 3 (redis/get-all-keys (test-db/get-test-store)))
+                                       their-values (storage/query (test-db/get-test-store) {:keys some-keys} {})
+                                       update-fn #(str % "bar")
+                                       updated-values (mapv (fn [v] (update-fn v)) their-values)]
 
-                             (facts "Test expiration" :slow
-                                    (fact "Wait for 10 seconds to check that item is deleted after expiration" :slow
-                                          
-                                          (-> (storage/query (test-db/get-test-store) {:key "foo"} {})
-                                              (clojure.string/starts-with? "barbar")) = true
+                                   (storage/update! (test-db/get-test-store) {:keys some-keys} update-fn)
+                                   (storage/query (test-db/get-test-store) {:keys some-keys} {}) => updated-values))
+                           (facts "Adda secondary index which applies only for sorted sets (will create one if not already existing)"
+                                  (storage/add-index (test-db/get-test-store) "sorted-set" {:member :c :score 1}) => 1
+                                  (count (log/spy (redis/get-all-keys (test-db/get-test-store)))) => 14
+                                  (redis/count-sorted-set (test-db/get-test-store) "sorted-set") => 1
+                                  (storage/add-index (test-db/get-test-store) "sorted-set" {:member "lala" :score 2}) => 1
+                                  (redis/count-sorted-set (test-db/get-test-store) "sorted-set") => 2)
 
-                                          (storage/expire (test-db/get-test-store) 3 {:keys ["foo"]}) => 1
-                                          
-                                          ;; TTL  for redis should be accuate to the second "Since Redis 2.6 the expire error is from 0 to 1 milliseconds."
-                                          (Thread/sleep (* 10 1000))
-                                          (storage/query (test-db/get-test-store) {:key "foo"} {}) => nil)))))
+                           (facts "Test expiration" :slow
+                                  (fact "Wait for 10 seconds to check that item is deleted after expiration" :slow
+                                        
+                                        (-> (storage/query (test-db/get-test-store) {:key "foo"} {})
+                                            (clojure.string/starts-with? "barbar")) = true
+
+                                        (storage/expire (test-db/get-test-store) 3 {:keys ["foo"]}) => 1
+                                        
+                                        ;; TTL  for redis should be accuate to the second "Since Redis 2.6 the expire error is from 0 to 1 milliseconds."
+                                        (Thread/sleep (* 10 1000))
+                                        (storage/query (test-db/get-test-store) {:key "foo"} {}) => nil))))
