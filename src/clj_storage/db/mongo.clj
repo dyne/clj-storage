@@ -128,7 +128,7 @@
        (storage/expire store expireAfterSeconds {}))
      (when unique-index
        (doseq [index unique-index]
-         (storage/add-index store index true)))
+         (storage/add-index store index {:unique true})))
      store )))
 
 (defn create-mongo-stores
