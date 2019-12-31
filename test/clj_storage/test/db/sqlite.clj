@@ -47,6 +47,8 @@
                                      (count tables) => 1
                                      (-> tables first :sqlite_master/TABLE_NAME) => "FRUIT"))
 
+                             (fact "Add index")
+                             
                              (fact "Insert rows to table"
                                    (storage/store! store (zipmap headers ["Apple" "red" 59 nil])) => truthy
                                    (storage/store! store (zipmap headers ["Banana" "yellow" nil 92.2])) => truthy
@@ -58,12 +60,12 @@
                                    (count (storage/query store {:id 1} {})) => 1
                                    (:FRUIT/NAME (first (storage/query store {:id 1} {}))) => "Apple"
                                    (count (storage/query store {:FRUIT/APPEARANCE "red"} {})) => 2
-                                   ;; TODO: queries greater to
-                                   ;; query nil
-                                   ;; query > date
-                                   )
+                                   (count (storage/query store ["COST > ?" 80] {})) => 2
+                                   (count (storage/query store ["APPEARANCE is null"] {})) => 1
+                                   (count (storage/query store ["CREATEDAT > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
 
-                             (fact "Update some rows")
+                             (fact "Update some rows"
+                                   )
 
                              (fact "Test the aggregates")
                              

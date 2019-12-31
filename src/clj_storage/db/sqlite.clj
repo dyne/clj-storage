@@ -43,9 +43,12 @@
   (store! [this item]
     ;; always add a created-at field, in case we need expiration
     (let [item-with-timestamp (assoc item :createdat (java.util.Date.))]
-      (sql/insert! (jdbc/get-connection ds) (log/spy table-name) (log/spy item-with-timestamp))))
+      (sql/insert! (jdbc/get-connection ds) table-name item-with-timestamp)))
+
   (update! [this query update-fn]
-    (sql/update! ds update-fn query))
+    ;; TODO: this needs a transaction to apply fn
+    (spec/assert ::update-fn update-fn)
+    (sql/update! ds table-name update-fn query))
 
   ;;TODO Pagination not added yet
   (query [this query pagination]
@@ -54,7 +57,8 @@
       (sql/find-by-keys ds table-name query)))
   
   (delete! [this item]
-    (sql/delete! ds this item))
+    (sql/delete! ds table-name item))
+  
   (aggregate [this formula params])
   (add-index [this index unique])
   (expire [this seconds params]))
@@ -76,3 +80,4 @@
 
 ;; TODO extract variable
 (ts/instrument)
+(spec/check-asserts true)

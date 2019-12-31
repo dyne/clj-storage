@@ -54,3 +54,4 @@
 (spec/def :clj-storage.db.sqlite/table-name string?)
 (spec/def :clj-storage.db.sqlite/table-columns (spec/coll-of string?))
 (spec/def :clj-storage.db.sqlite/sqlite-ds #(instance? javax.sql.DataSource %))
+(spec/def :clj-storage.db.sqlite/update-fn {keyword? fn?})

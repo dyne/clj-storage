@@ -61,7 +61,7 @@
         (mc/insert-and-return mongo-db coll item-with-timestamp))))
 
   (update! [collection query update-fn]
-    (mc/update mongo-db coll query update-fn  {:multi true}))
+    (mc/update mongo-db coll query update-fn {:multi true}))
   
   (query [collection query pagination]
     (if (empty? pagination)
