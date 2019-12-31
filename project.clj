@@ -22,8 +22,10 @@
                  ;; redis
                  [com.taoensso/carmine "2.19.1"]
 
-                 ;; sqlite
-                 [seancorfield/next.jdbc "1.0.12"]]
+                 ;; sql
+                 [seancorfield/next.jdbc "1.0.13"]
+                 ;; driver for sqlite 
+                 [org.xerial/sqlite-jdbc "3.30.1"]]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]

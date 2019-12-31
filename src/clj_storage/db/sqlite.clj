@@ -24,29 +24,46 @@
 
 (ns clj-storage.db.sqlite
   (:require [clj-storage.core :as storage :refer [Store]]
-            [clj-storage.spec]
-            [next.jdbc :as sql]
+            [clj-storage.db.sqlite.queries :as q]
+
             [clj-storage.spec]
             [clojure.spec.alpha :as spec]
-            ; [taoensso.timbre :as log]
+            [clojure.spec.test.alpha :as ts]
+            
+            [next.jdbc :as jdbc]
+            [next.jdbc.sql :as sql]
+
+            [taoensso.timbre :as log]
             ))
 
 
-(defrecord SqliteStore [ds]
+(defrecord SqliteStore [ds table-name]
   Store
   (store! [this item]
           ;; always add a created-at field, in case we need expiration
     (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
-      (sql/insert! ds this item-with-timestamp)))
+      (sql/insert! ds item-with-timestamp)))
   (update! [this query update-fn]
-    (sql/update! ds this update-fn query))
+    (sql/update! ds update-fn query))
   ; Pagination not added yet
   (query [this query pagination]
     (if (spec/valid? :clj-storage.spec/only-id-map query)
-      (sql/get-by-id ds this (:id query))
-      (sql/find-by-keys ds this query)))
+      (sql/get-by-id ds (:id query))
+      (sql/find-by-keys ds query)))
   (delete! [this item]
     (sql/delete! ds this item))
   (aggregate [this formula params])
   (add-index [this index unique])
   (expire [this seconds params]))
+
+(defn create-sqlite-table [sqlite-ds table-name table-columns]
+  (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)])
+  (SqliteStore. sqlite-ds table-name))
+
+(spec/fdef create-sqlite-table :args (spec/cat
+                                      :sqlite-ds ::sqlite-ds
+                                      :table-name ::table-name
+                                      :table-columns ::table-columns))
+
+;; TODO extract variable
+(ts/instrument)

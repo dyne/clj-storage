@@ -23,7 +23,10 @@
 
 (ns clj-storage.core
   (:require [clj-storage.spec]
+
             [clojure.spec.alpha :as spec]
+            [clojure.spec.test.alpha :as ts]
+
             [taoensso.timbre :as log]))
 
 (defprotocol Store
@@ -73,6 +76,7 @@
   (aggregate [this formula  params]
     (let [{:keys [map-fn reduce-fn]} (spec/assert ::in-memory-aggregate-formula formula)]
          (reduce reduce-fn (map map-fn formula))))
+
   ;; TODO: maybe add as wrapper function?
   #_(delete-all! [this]
     (reset! data {}))
@@ -124,3 +128,5 @@
 
 ;; TODO extract conf
 (spec/check-asserts true)
+;; TODO extract variable
+(ts/instrument)
