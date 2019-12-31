@@ -21,31 +21,29 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns clj-storage.test.db.redis.test-db
-  (:require [taoensso.carmine :as car :refer (wcar)]
-            [clj-storage.db.redis :refer [wcar* create-redis-database]]
-            [cheshire.core :as json]
+(ns clj-storage.test.db.sqlite.test-db
+  (:require [clj-storage.db.sqlite :as db]
+            [clj-storage.db.sqlite.queries :as q]
+            
+            [next.jdbc :as jdbc]
             [taoensso.timbre :as log]))
 
-;; Redis holds by default up to 16 dbs. First one here is indicated by the /0
-(def uri "redis://127.0.0.1:6379/1")
+(def db {:dbtype "sqlite" :dbname "/tmp/test.db"})
 
-(def store-and-conn (atom {}))
+(def ds (atom nil))
 
-(defn get-test-store []
-  (:store @store-and-conn))
+(defn get-test-db-connection []
+  (jdbc/get-connection @ds))
 
-(defn get-test-connection []
-  (:conn @store-and-conn))
+(defn get-datasource []
+  @ds)
 
 (defn setup-db []
-  (log/debug "Connecting to REDIS test DB " uri)
-  (reset! store-and-conn (create-redis-database uri))
-  (log/debug  "Testing connction to redis: " (wcar* (get-test-connection) (car/ping))))
+  (log/debug "Setting a file system sqlite DB")
+  (reset! ds (jdbc/get-datasource db)))
 
 (defn teardown-db []
-  ;; TODO: this still doesnt kill the client (returns 0)
-  (let [client (wcar* (get-test-connection) (car/client-list))
-        client-id (-> client (clojure.string/split #"=") second (clojure.string/split #" ") first)]
-    (wcar* (get-test-connection) (car/flushdb))
-    (wcar* (get-test-connection) (car/client-kill "ID" client-id))))
+  (log/debug "Tearing down test DB " @ds)
+  (jdbc/execute-one! (get-test-db-connection) [(q/drop-table "FRUIT")])
+  (jdbc/execute-one! (get-test-db-connection) [(q/drop-table "CLASSIFICATION")])
+  (reset! ds nil))

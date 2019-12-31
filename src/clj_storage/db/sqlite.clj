@@ -24,29 +24,85 @@
 
 (ns clj-storage.db.sqlite
   (:require [clj-storage.core :as storage :refer [Store]]
-            [clj-storage.spec]
-            [next.jdbc :as sql]
+            [clj-storage.db.sqlite.queries :as q]
+
             [clj-storage.spec]
             [clojure.spec.alpha :as spec]
-            ; [taoensso.timbre :as log]
+            [clojure.spec.test.alpha :as ts]
+            
+            [next.jdbc :as jdbc]
+            [next.jdbc.sql :as sql]
+            [next.jdbc.result-set :as rs]
+
+            [taoensso.timbre :as log]
             ))
 
 
-(defrecord SqliteStore [ds]
+(defrecord SqliteStore [ds table-name]
   Store
   (store! [this item]
-          ;; always add a created-at field, in case we need expiration
-    (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
-      (sql/insert! ds this item-with-timestamp)))
+    ;; always add a created-at field, in case we need expiration
+    (let [item-with-timestamp (assoc item :createdate (java.util.Date.))]
+      (sql/insert! (jdbc/get-connection ds) table-name item-with-timestamp)))
+
   (update! [this query update-fn]
-    (sql/update! ds this update-fn query))
-  ; Pagination not added yet
+    ;; If it is a prepared statement should be a vector
+    (if (spec/valid? ::update-prepared-statement update-fn)
+      (jdbc/execute! (jdbc/get-connection ds)
+                     [(cond-> "update "
+                        true (str 
+                              table-name
+                              " set "
+                              (apply str update-fn)
+                              " where ")
+                        (spec/valid? ::update-query-vector query) (str (first query))
+                        (spec/valid? ::update-query-map query) (str (key query)))
+                      (if (spec/valid? ::update-query-vector query)
+                        ((partial apply identity) (rest ["GRADE >= ?" 90]))
+                        ((partial apply identity) (val query)))])
+      (sql/update! ds table-name update-fn query)))
+
+  ;;TODO Pagination not added yet
   (query [this query pagination]
     (if (spec/valid? :clj-storage.spec/only-id-map query)
-      (sql/get-by-id ds this (:id query))
-      (sql/find-by-keys ds this query)))
+      (sql/get-by-id (jdbc/get-connection ds) table-name (:id query))
+      (sql/find-by-keys ds table-name query)))
+  
   (delete! [this item]
-    (sql/delete! ds this item))
-  (aggregate [this formula params])
-  (add-index [this index unique])
+    (sql/delete! ds table-name item))
+  
+  (aggregate [this formula params]
+    (spec/assert ::aggregate-params params)
+    (jdbc/execute-one! (jdbc/get-connection ds) [(q/aggregate table-name params)]))
+
+  (add-index [this index params]
+    (spec/assert ::index-params params)
+    (jdbc/execute-one! (jdbc/get-connection ds) [(q/add-index table-name index params)]))
+
   (expire [this seconds params]))
+
+(defn show-tables [ds]
+  (with-open [con (jdbc/get-connection ds)]
+  (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+      (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+      (rs/datafiable-result-set ds {}))))
+
+(defn retrieve-table-indices [ds table-name]
+  (with-open [con (jdbc/get-connection ds {})]
+    (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+        (.getIndexInfo nil nil table-name true false)
+        #_(.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+        (rs/datafiable-result-set ds {}))))
+
+(defn create-sqlite-table [sqlite-ds table-name table-columns]
+  (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)])
+  (SqliteStore. sqlite-ds table-name))
+
+(spec/fdef create-sqlite-table :args (spec/cat
+                                      :sqlite-ds ::sqlite-ds
+                                      :table-name ::table-name
+                                      :table-columns ::table-columns))
+
+;; TODO extract variable
+(ts/instrument)
+(spec/check-asserts true)
