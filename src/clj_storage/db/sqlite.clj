@@ -32,6 +32,7 @@
             
             [next.jdbc :as jdbc]
             [next.jdbc.sql :as sql]
+            [next.jdbc.result-set :as rs]
 
             [taoensso.timbre :as log]
             ))
@@ -55,6 +56,12 @@
   (aggregate [this formula params])
   (add-index [this index unique])
   (expire [this seconds params]))
+
+(defn show-tables [ds]
+  (with-open [con (jdbc/get-connection ds)]
+  (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+      (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+      (rs/datafiable-result-set ds {}))))
 
 (defn create-sqlite-table [sqlite-ds table-name table-columns]
   (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)])

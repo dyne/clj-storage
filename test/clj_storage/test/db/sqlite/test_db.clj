@@ -38,14 +38,6 @@
 (defn get-datasource []
   @ds)
 
-(def create-test-table
-  (str "CREATE TABLE FRUIT "
-       " (ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-       " NAME VARCHAR(32),"
-       " APPEARANCE VARCHAR(32) DEFAULT NULL,"
-       " COST INT DEFAULT NULL,"
-       " GRADE REAL DEFAULT NULL)"))
-
 (defn setup-db []
   (log/debug "Setting a file system sqlite DB")
   (reset! ds (jdbc/get-datasource db))
@@ -57,4 +49,5 @@
 (defn teardown-db []
   (log/debug "Tearing down test DB " @ds)
   (jdbc/execute-one! (get-test-db-connection) [(q/drop-table "FRUIT")])
+  #_(jdbc/execute-one! (get-test-db-connection) [(q/drop-table "address")])
   (reset! ds nil))
