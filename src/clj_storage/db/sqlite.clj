@@ -41,16 +41,18 @@
 (defrecord SqliteStore [ds table-name]
   Store
   (store! [this item]
-          ;; always add a created-at field, in case we need expiration
-    (let [item-with-timestamp (assoc item :created-at (java.util.Date.))]
-      (sql/insert! ds item-with-timestamp)))
+    ;; always add a created-at field, in case we need expiration
+    (let [item-with-timestamp (assoc item :createdat (java.util.Date.))]
+      (sql/insert! (jdbc/get-connection ds) (log/spy table-name) (log/spy item-with-timestamp))))
   (update! [this query update-fn]
     (sql/update! ds update-fn query))
-  ; Pagination not added yet
+
+  ;;TODO Pagination not added yet
   (query [this query pagination]
     (if (spec/valid? :clj-storage.spec/only-id-map query)
-      (sql/get-by-id ds (:id query))
-      (sql/find-by-keys ds query)))
+      (sql/get-by-id (jdbc/get-connection ds) table-name (:id query))
+      (sql/find-by-keys ds table-name query)))
+  
   (delete! [this item]
     (sql/delete! ds this item))
   (aggregate [this formula params])
@@ -64,7 +66,7 @@
       (rs/datafiable-result-set ds {}))))
 
 (defn create-sqlite-table [sqlite-ds table-name table-columns]
-  (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)])
+  (log/spy (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)]))
   (SqliteStore. sqlite-ds table-name))
 
 (spec/fdef create-sqlite-table :args (spec/cat
