@@ -51,6 +51,7 @@
 (spec/def :clj-storage.db.redis/index-params (spec/keys :req-un [:clj-storage.spec/score :clj-storage.spec/member]))
 (spec/def :clj-storage.db.redis/item (spec/keys :key :value))
 
+(spec/def :clj-storage.db.sqlite/index-params (spec/keys :req-un [:clj-storage.spec/columns] :opt [::unique ::where]))
 (spec/def :clj-storage.db.sqlite/table-name string?)
 (spec/def :clj-storage.db.sqlite/table-columns (spec/coll-of string?))
 (spec/def :clj-storage.db.sqlite/sqlite-ds #(instance? javax.sql.DataSource %))

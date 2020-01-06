@@ -45,4 +45,5 @@
 (defn teardown-db []
   (log/debug "Tearing down test DB " @ds)
   (jdbc/execute-one! (get-test-db-connection) [(q/drop-table "FRUIT")])
+  (jdbc/execute-one! (get-test-db-connection) [(q/drop-table "CLASSIFICATION")])
   (reset! ds nil))

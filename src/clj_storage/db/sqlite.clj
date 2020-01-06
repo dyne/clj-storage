@@ -60,7 +60,16 @@
     (sql/delete! ds table-name item))
   
   (aggregate [this formula params])
-  (add-index [this index unique])
+
+  (add-index [this index params]
+    (spec/assert ::index-params params)
+    (jdbc/execute-one! (jdbc/get-connection ds) [(cond-> "CREATE "
+                                                   (:unique params) (str "UNIQUE ")
+                                                   true (str "INDEX " index)
+                                                   (:columns params) (str " ON " table-name "(" (:columns params) ")")
+                                                   (:where params) (str " WHERE " (:where params))
+                                                   true (str ";"))]))
+
   (expire [this seconds params]))
 
 (defn show-tables [ds]
@@ -68,6 +77,13 @@
   (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
       (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
       (rs/datafiable-result-set ds {}))))
+
+(defn retrieve-table-indices [ds table-name]
+  (with-open [con (jdbc/get-connection ds {})]
+    (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+        (.getIndexInfo nil nil table-name true false)
+        #_(.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+        (rs/datafiable-result-set ds {}))))
 
 (defn create-sqlite-table [sqlite-ds table-name table-columns]
   (log/spy (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)]))
