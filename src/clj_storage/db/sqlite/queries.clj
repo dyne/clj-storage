@@ -34,6 +34,14 @@
 (defn drop-table [name]
   (str "DROP TABLE " name))
 
+(defn add-index [table-name index params]
+  (cond-> "CREATE "
+    (:unique params) (str "UNIQUE ")
+    true (str "INDEX " index)
+    (:columns params) (str " ON " table-name "(" (:columns params) ")")
+    (:where params) (str " WHERE " (:where params))
+    true (str ";")))
+
 (defn aggregate [table-name params]
   (cond-> "SELECT "
     (:select params) (str (:select params) " ")

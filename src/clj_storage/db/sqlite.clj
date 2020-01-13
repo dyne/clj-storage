@@ -65,12 +65,7 @@
 
   (add-index [this index params]
     (spec/assert ::index-params params)
-    (jdbc/execute-one! (jdbc/get-connection ds) [(cond-> "CREATE "
-                                                   (:unique params) (str "UNIQUE ")
-                                                   true (str "INDEX " index)
-                                                   (:columns params) (str " ON " table-name "(" (:columns params) ")")
-                                                   (:where params) (str " WHERE " (:where params))
-                                                   true (str ";"))]))
+    (jdbc/execute-one! (jdbc/get-connection ds) [(q/add-index table-name index params)]))
 
   (expire [this seconds params]))
 
