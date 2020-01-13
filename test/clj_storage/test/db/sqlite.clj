@@ -92,7 +92,10 @@
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (DISTINCT APPEARANCE)"})) => '(3)
                                    (vals (storage/aggregate fruit-store nil {:select "MAX (COST)"})) => '(139))
                              
-                             #_(fact "Delete some rows"))
+                             (fact "Delete some rows"
+                                   (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)
+                                   (storage/delete! fruit-store ["COST > ?" 0]) => {:next.jdbc/update-count 3}
+                                   (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(2)))
 
                       (facts "Test the expiration" :slow)
                       ))
