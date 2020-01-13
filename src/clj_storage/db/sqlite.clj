@@ -59,7 +59,9 @@
   (delete! [this item]
     (sql/delete! ds table-name item))
   
-  (aggregate [this formula params])
+  (aggregate [this formula params]
+    (spec/assert ::aggregate-params params)
+    (jdbc/execute-one! (jdbc/get-connection ds) [(q/aggregate table-name params)]))
 
   (add-index [this index params]
     (spec/assert ::index-params params)
@@ -86,7 +88,7 @@
         (rs/datafiable-result-set ds {}))))
 
 (defn create-sqlite-table [sqlite-ds table-name table-columns]
-  (log/spy (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)]))
+  (jdbc/execute-one! (jdbc/get-connection sqlite-ds) [(q/create-table table-name table-columns)])
   (SqliteStore. sqlite-ds table-name))
 
 (spec/fdef create-sqlite-table :args (spec/cat

@@ -20,12 +20,7 @@
 
 
 (ns clj-storage.db.sqlite.queries
-  (:require [clj-storage.spec]
-            [clojure.spec.alpha :as spec]
-            [clojure.spec.test.alpha :as ts]
-
-            [taoensso.timbre :as log]
-            ))
+  (:require [taoensso.timbre :as log]))
 
 (defn create-table [name columns]
   (let [columns-str (loop [s ""
@@ -38,3 +33,11 @@
 
 (defn drop-table [name]
   (str "DROP TABLE " name))
+
+(defn aggregate [table-name params]
+  (cond-> "SELECT "
+    (:select params) (str (:select params) " ")
+    true (str "FROM " table-name)
+    (:group-by params) (str " GROUP BY " (:group-by params))
+    (:order-by params) (str  "ORDER BY " (:order-by params))
+    true (str ";")))

@@ -64,6 +64,10 @@
                                        first
                                        :COLUMN_NAME)
                                    => "NAME")
+
+                             ;; TODO JOINS
+                             #_(fact "Check join between two tables"
+                                   )
                              
                              (fact "Insert rows to table"
                                    (storage/store! fruit-store (zipmap headers ["Apple" "red" 59 nil])) => truthy
@@ -80,12 +84,15 @@
                                    (count (storage/query fruit-store ["APPEARANCE is null"] {})) => 1
                                    (count (storage/query fruit-store ["CREATEDAT > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
 
-                             (fact "Update some rows"
+                             #_(fact "Update some rows"
                                    )
 
-                             (fact "Test the aggregates")
+                             (fact "Test the aggregates"
+                                   (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)
+                                   (vals (storage/aggregate fruit-store nil {:select "COUNT (DISTINCT APPEARANCE)"})) => '(3)
+                                   (vals (storage/aggregate fruit-store nil {:select "MAX (COST)"})) => '(139))
                              
-                             (fact "Delete some rows"))
+                             #_(fact "Delete some rows"))
 
                       (facts "Test the expiration" :slow)
                       ))
