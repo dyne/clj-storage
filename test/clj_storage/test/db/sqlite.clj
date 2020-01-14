@@ -84,13 +84,26 @@
                                    (count (storage/query fruit-store ["APPEARANCE is null"] {})) => 1
                                    (count (storage/query fruit-store ["CREATEDAT > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
 
-                             #_(fact "Update some rows"
-                                   )
-
                              (fact "Test the aggregates"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (DISTINCT APPEARANCE)"})) => '(3)
                                    (vals (storage/aggregate fruit-store nil {:select "MAX (COST)"})) => '(139))
+
+                             (fact "Update some rows"
+                                   (storage/query fruit-store {:FRUIT/APPEARANCE "peach color"} {}) => []
+                                   (storage/update! fruit-store {:FRUIT/NAME "Peach"} {:FRUIT/APPEARANCE "peach color"})
+                                   (-> (storage/query fruit-store {:FRUIT/APPEARANCE "peach color"} {})
+                                       first
+                                       (dissoc :FRUIT/CREATEDAT)) => {:FRUIT/APPEARANCE "peach color"
+                                                                      :FRUIT/COST 139
+                                                                      :FRUIT/GRADE 90.0
+                                                                      :FRUIT/ID 3
+                                                                      :FRUIT/NAME "Peach"}
+                                   
+                                   (count (storage/query fruit-store ["GRADE >= ?" 90] {})) => 2
+                                   (storage/update! fruit-store ["GRADE >= ?" 90] {:FRUIT/GRADE  ["GRADE + ?" 50]}) => {:next.jdbc/update-count 2}
+                                   (storage/query fruit-store {:FRUIT/NAME "Peach"} {}) => []
+                                   (count (storage/query fruit-store ["GRADE >= ?" 90] {})) => 1)
                              
                              (fact "Delete some rows"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)

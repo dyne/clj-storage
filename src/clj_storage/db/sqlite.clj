@@ -46,9 +46,19 @@
       (sql/insert! (jdbc/get-connection ds) table-name item-with-timestamp)))
 
   (update! [this query update-fn]
-    ;; TODO: this needs a transaction to apply fn
-    (spec/assert ::update-fn update-fn)
-    (sql/update! ds table-name update-fn query))
+    (spec/assert ::query query)
+    ;; If it is a prepared statement should be a vector
+    (if (spec/valid? ::prepared-statement update-fn)
+      (jdbc/execute! (jdbc/get-connection ds)
+                     [(str "update "
+                           table-name
+                           " set "
+                           update-fn
+                           " where "
+                           (:query query)
+                           )
+                      apply (:query-vals query)])
+      (sql/update! ds table-name update-fn query)))
 
   ;;TODO Pagination not added yet
   (query [this query pagination]
