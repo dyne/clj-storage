@@ -101,9 +101,9 @@
                                                                       :FRUIT/NAME "Peach"}
                                    
                                    (count (storage/query fruit-store ["GRADE >= ?" 90] {})) => 2
-                                   (storage/update! fruit-store ["GRADE >= ?" 90] {:FRUIT/GRADE  ["GRADE + ?" 50]}) => {:next.jdbc/update-count 2}
+                                   (storage/update! fruit-store ["GRADE >= ?" 90] ["GRADE + ? " 50]) => {:next.jdbc/update-count 2}
                                    (storage/query fruit-store {:FRUIT/NAME "Peach"} {}) => []
-                                   (count (storage/query fruit-store ["GRADE >= ?" 90] {})) => 1)
+                                   (storage/query fruit-store ["GRADE >= ?" 90] {}) => 1)
                              
                              (fact "Delete some rows"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)

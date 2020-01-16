@@ -46,18 +46,20 @@
       (sql/insert! (jdbc/get-connection ds) table-name item-with-timestamp)))
 
   (update! [this query update-fn]
-    (spec/assert ::query query)
     ;; If it is a prepared statement should be a vector
-    (if (spec/valid? ::prepared-statement update-fn)
+    (if (spec/valid? ::update-prepared-statement update-fn)
       (jdbc/execute! (jdbc/get-connection ds)
-                     [(str "update "
-                           table-name
-                           " set "
-                           update-fn
-                           " where "
-                           (:query query)
-                           )
-                      apply (:query-vals query)])
+                     [(log/spy (cond-> "update "
+                                 true (str 
+                                       table-name
+                                       " set "
+                                       (apply str update-fn)
+                                       " where ")
+                                 (spec/valid? ::update-query-vector query) (str (first query))
+                                 (spec/valid? ::update-query-map query) (str (key query))))
+                      (if (spec/valid? ::update-query-vector query)
+                        ((partial apply identity) (rest ["GRADE >= ?" 90]))
+                        ((partial apply identity) (val query)))])
       (sql/update! ds table-name update-fn query)))
 
   ;;TODO Pagination not added yet
