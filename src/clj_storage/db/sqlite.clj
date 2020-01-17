@@ -42,21 +42,21 @@
   Store
   (store! [this item]
     ;; always add a created-at field, in case we need expiration
-    (let [item-with-timestamp (assoc item :createdat (java.util.Date.))]
+    (let [item-with-timestamp (assoc item :createdate (java.util.Date.))]
       (sql/insert! (jdbc/get-connection ds) table-name item-with-timestamp)))
 
   (update! [this query update-fn]
     ;; If it is a prepared statement should be a vector
     (if (spec/valid? ::update-prepared-statement update-fn)
       (jdbc/execute! (jdbc/get-connection ds)
-                     [(log/spy (cond-> "update "
-                                 true (str 
-                                       table-name
-                                       " set "
-                                       (apply str update-fn)
-                                       " where ")
-                                 (spec/valid? ::update-query-vector query) (str (first query))
-                                 (spec/valid? ::update-query-map query) (str (key query))))
+                     [(cond-> "update "
+                        true (str 
+                              table-name
+                              " set "
+                              (apply str update-fn)
+                              " where ")
+                        (spec/valid? ::update-query-vector query) (str (first query))
+                        (spec/valid? ::update-query-map query) (str (key query)))
                       (if (spec/valid? ::update-query-vector query)
                         ((partial apply identity) (rest ["GRADE >= ?" 90]))
                         ((partial apply identity) (val query)))])

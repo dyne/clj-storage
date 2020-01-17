@@ -34,7 +34,7 @@
                    "APPEARANCE VARCHAR(32) DEFAULT NULL"
                    "COST INT DEFAULT NULL"
                    "GRADE REAL DEFAULT NULL"
-                   "CREATEDAT TIMESTAMP NOT NULL"])
+                   "CREATEDATE TIMESTAMP NOT NULL"])
 (def secondary-table-name "CLASSIFICATION")
 (def secondary-columns ["NAME VARCHAR(32) UNIQUE"
                         "GENUS VARCHAR(32)"])
@@ -82,7 +82,7 @@
                                    (count (storage/query fruit-store {:FRUIT/APPEARANCE "red"} {})) => 2
                                    (count (storage/query fruit-store ["COST > ?" 80] {})) => 2
                                    (count (storage/query fruit-store ["APPEARANCE is null"] {})) => 1
-                                   (count (storage/query fruit-store ["CREATEDAT > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
+                                   (count (storage/query fruit-store ["CREATEDATE > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
 
                              (fact "Test the aggregates"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)
@@ -91,19 +91,27 @@
 
                              (fact "Update some rows"
                                    (storage/query fruit-store {:FRUIT/APPEARANCE "peach color"} {}) => []
-                                   (storage/update! fruit-store {:FRUIT/NAME "Peach"} {:FRUIT/APPEARANCE "peach color"})
+                                   (storage/update! fruit-store {:FRUIT/NAME "Peach"} {:FRUIT/APPEARANCE "peach color"}) => {:next.jdbc/update-count 1}
                                    (-> (storage/query fruit-store {:FRUIT/APPEARANCE "peach color"} {})
                                        first
-                                       (dissoc :FRUIT/CREATEDAT)) => {:FRUIT/APPEARANCE "peach color"
+                                       (dissoc :FRUIT/CREATEDATE)) => {:FRUIT/APPEARANCE "peach color"
                                                                       :FRUIT/COST 139
                                                                       :FRUIT/GRADE 90.0
                                                                       :FRUIT/ID 3
                                                                       :FRUIT/NAME "Peach"}
                                    
                                    (count (storage/query fruit-store ["GRADE >= ?" 90] {})) => 2
-                                   (storage/update! fruit-store ["GRADE >= ?" 90] ["GRADE + ? " 50]) => {:next.jdbc/update-count 2}
-                                   (storage/query fruit-store {:FRUIT/NAME "Peach"} {}) => []
-                                   (storage/query fruit-store ["GRADE >= ?" 90] {}) => 1)
+                                   (count (storage/query fruit-store ["GRADE >= ?" 100] {})) => 0
+                                   (storage/update! fruit-store ["GRADE >= ?" 90] "GRADE = ( 50 + grade )") => [{:next.jdbc/update-count 2}]
+                                   (-> (storage/query fruit-store {:FRUIT/NAME "Peach"} {})
+                                       first
+                                       (dissoc :FRUIT/CREATEDATE))
+                                   => {:FRUIT/APPEARANCE "peach color"
+                                       :FRUIT/COST 139
+                                       :FRUIT/GRADE 140.0
+                                       :FRUIT/ID 3
+                                       :FRUIT/NAME "Peach"}
+                                   (count (storage/query fruit-store ["GRADE >= ?" 100] {})) => 2)
                              
                              (fact "Delete some rows"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)

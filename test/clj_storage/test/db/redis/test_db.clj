@@ -45,7 +45,7 @@
 
 (defn teardown-db []
   ;; TODO: this still doesnt kill the client (returns 0)
-  (let [client (log/spy (wcar* (get-test-connection) (car/client-list)))
-        client-id (log/spy (-> client (clojure.string/split #"=") second (clojure.string/split #" ") first))]
+  (let [client (wcar* (get-test-connection) (car/client-list))
+        client-id (-> client (clojure.string/split #"=") second (clojure.string/split #" ") first)]
     (wcar* (get-test-connection) (car/flushdb))
     (wcar* (get-test-connection) (car/client-kill "ID" client-id))))

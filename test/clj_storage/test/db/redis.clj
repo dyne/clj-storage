@@ -84,7 +84,7 @@
                                    (storage/query (test-db/get-test-store) {:keys some-keys} {}) => updated-values))
                            (facts "Adda secondary index which applies only for sorted sets (will create one if not already existing)"
                                   (storage/add-index (test-db/get-test-store) "sorted-set" {:member :c :score 1}) => 1
-                                  (count (log/spy (redis/get-all-keys (test-db/get-test-store)))) => 14
+                                  (count (redis/get-all-keys (test-db/get-test-store))) => 14
                                   (redis/count-sorted-set (test-db/get-test-store) "sorted-set") => 1
                                   (storage/add-index (test-db/get-test-store) "sorted-set" {:member "lala" :score 2}) => 1
                                   (redis/count-sorted-set (test-db/get-test-store) "sorted-set") => 2)

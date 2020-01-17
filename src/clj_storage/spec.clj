@@ -51,7 +51,7 @@
 (spec/def :clj-storage.db.redis/index-params (spec/keys :req-un [:clj-storage.spec/score :clj-storage.spec/member]))
 (spec/def :clj-storage.db.redis/item (spec/keys :key :value))
 
-(spec/def :clj-storage.db.sqlite/update-prepared-statement vector?)
+(spec/def :clj-storage.db.sqlite/update-prepared-statement string?)
 (spec/def :clj-storage.db.sqlite/update-query-map map?)
 (spec/def :clj-storage.db.sqlite/update-query-vector vector?)
 (spec/def :clj-storage.db.sqlite/aggregate-params (spec/keys :req-un [:clj-storage.spec/select] :opt [::where ::group-by ::order-by]))
