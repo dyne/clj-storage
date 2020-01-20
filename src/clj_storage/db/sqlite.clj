@@ -34,6 +34,8 @@
             [next.jdbc.sql :as sql]
             [next.jdbc.result-set :as rs]
 
+            [clj-time.core :as time]
+            
             [taoensso.timbre :as log]
             ))
 
@@ -66,7 +68,9 @@
   (query [this query pagination]
     (if (spec/valid? :clj-storage.spec/only-id-map query)
       (sql/get-by-id (jdbc/get-connection ds) table-name (:id query))
-      (sql/find-by-keys ds table-name query)))
+      (if (empty? query)
+        (jdbc/execute! ds [(str "select * from " table-name)])
+        (sql/find-by-keys ds table-name query))))
   
   (delete! [this item]
     (sql/delete! ds table-name item))
@@ -79,12 +83,21 @@
     (spec/assert ::index-params params)
     (jdbc/execute-one! (jdbc/get-connection ds) [(q/add-index table-name index params)]))
 
-  (expire [this seconds params]))
+  (expire [this seconds params]
+    (spec/assert ::expire-seconds seconds)
+    (log/info "Starting a thread to check for expiration for table " table-name)
+    ;; The logged-future will return an exception which otherwise would be swallowed till deref
+    (log/logged-future
+     (while true
+       ;; TODO: config extract
+       (Thread/sleep 30000)
+       (log/debug "Checking for expired rows for table " table-name)
+       (storage/delete! this ["CREATEDATE < ?" (log/spy (time/minus (time/now) (time/seconds seconds)))])))))
 
 (defn show-tables [ds]
   (with-open [con (jdbc/get-connection ds)]
   (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
-      (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+      (.getTables nil nil `nil (into-array ["TABLE" "VIEW"]))
       (rs/datafiable-result-set ds {}))))
 
 (defn retrieve-table-indices [ds table-name]

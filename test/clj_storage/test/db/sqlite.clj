@@ -34,10 +34,11 @@
                    "APPEARANCE VARCHAR(32) DEFAULT NULL"
                    "COST INT DEFAULT NULL"
                    "GRADE REAL DEFAULT NULL"
-                   "CREATEDATE TIMESTAMP NOT NULL"])
+                    "CREATEDATE TIMESTAMP NOT NULL"])
 (def secondary-table-name "CLASSIFICATION")
 (def secondary-columns ["NAME VARCHAR(32) UNIQUE"
-                        "GENUS VARCHAR(32)"])
+                        "GENUS VARCHAR(32)"
+                        "CREATEDATE TIMESTAMP NOT NULL"])
 
 
 (against-background [(before :contents (test-db/setup-db))
@@ -74,9 +75,15 @@
                                    (storage/store! fruit-store (zipmap headers ["Banana" "yellow" nil 92.2])) => truthy
                                    (storage/store! fruit-store (zipmap headers ["Peach" nil 139 90.0])) => truthy
                                    (storage/store! fruit-store (zipmap headers ["Orange" "juicy" 89 88.6])) => truthy
-                                   (storage/store! fruit-store (zipmap headers ["Cherry" "red" nil nil])) => truthy)
+                                   (storage/store! fruit-store (zipmap headers ["Cherry" "red" nil nil])) => truthy
+                                   (storage/store! classification-store {:name "Banana" :genus "Musa"})
+                                   (storage/store! classification-store {:name "Orange" :genus "Citrus"})
+                                   ;; Add expiration for classification-store
+                                   (storage/expire classification-store 30 {}))
 
                              (fact "Query the table with pagination"
+                                   (count (storage/query fruit-store {} {})) => 5
+                                   (count (storage/query classification-store {} {})) => 2
                                    (count (storage/query fruit-store {:id 1} {})) => 1
                                    (:FRUIT/NAME (first (storage/query fruit-store {:id 1} {}))) => "Apple"
                                    (count (storage/query fruit-store {:FRUIT/APPEARANCE "red"} {})) => 2
@@ -118,5 +125,6 @@
                                    (storage/delete! fruit-store ["COST > ?" 0]) => {:next.jdbc/update-count 3}
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(2)))
 
-                      (facts "Test the expiration" :slow)
-                      ))
+                      (facts "Test the expiration" :slow
+                             (Thread/sleep (* 60 1000))
+                             (count (storage/query classification-store {} {})) => 0)))
