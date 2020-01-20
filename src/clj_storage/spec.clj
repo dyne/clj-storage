@@ -51,6 +51,7 @@
 (spec/def :clj-storage.db.redis/index-params (spec/keys :req-un [:clj-storage.spec/score :clj-storage.spec/member]))
 (spec/def :clj-storage.db.redis/item (spec/keys :key :value))
 
+(spec/def :clj-storage.db.sqlite/pagination (spec/keys :req-un [:clj-storage.spec/limit :clj-storage.spec/offset :clj-storage.spec/order-by]))
 (spec/def :clj-storage.db.sqlite/update-prepared-statement string?)
 (spec/def :clj-storage.db.sqlite/update-query-map map?)
 (spec/def :clj-storage.db.sqlite/update-query-vector vector?)
@@ -59,3 +60,4 @@
 (spec/def :clj-storage.db.sqlite/table-name string?)
 (spec/def :clj-storage.db.sqlite/table-columns (spec/coll-of string?))
 (spec/def :clj-storage.db.sqlite/sqlite-ds #(instance? javax.sql.DataSource %))
+(spec/def :clj-storage.db.sqlite/expire-seconds (spec/int-in 10 Integer/MAX_VALUE))

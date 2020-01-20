@@ -34,9 +34,27 @@
             [next.jdbc.sql :as sql]
             [next.jdbc.result-set :as rs]
 
+            [clj-time.core :as time]
+            
             [taoensso.timbre :as log]
             ))
 
+(defn- not-empty? [col]
+  ((comp not empty?) col))
+
+(defn retrieve-tables [ds]
+  (with-open [con (jdbc/get-connection ds {})]
+    (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+        (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+        (rs/datafiable-result-set ds {}))))
+
+(defn retrieve-table [ds table-name]
+  (let [tables
+        (with-open [con (jdbc/get-connection ds {})]
+          (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+              (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+              (rs/datafiable-result-set ds {})))]
+    (filter #(= (:sqlite_master/TABLE_NAME %) table-name) tables)))
 
 (defrecord SqliteStore [ds table-name]
   Store
@@ -62,11 +80,16 @@
                         ((partial apply identity) (val query)))])
       (sql/update! ds table-name update-fn query)))
 
-  ;;TODO Pagination not added yet
+  ;;TODO: Pagination now works only for list all. Maybe do it also for query
   (query [this query pagination]
-    (if (spec/valid? :clj-storage.spec/only-id-map query)
-      (sql/get-by-id (jdbc/get-connection ds) table-name (:id query))
-      (sql/find-by-keys ds table-name query)))
+    (if (spec/valid? ::pagination pagination)
+      ;; Order by needed because sql is unordered see https://stackoverflow.com/questions/14468586/efficient-paging-in-sqlite-with-millions-of-records?noredirect=1&lq=1
+      (jdbc/execute! ds [(str "select * from " table-name " ORDER BY " (:order-by pagination) " LIMIT " (:limit pagination) " OFFSET " (:offset pagination))])
+      (if (spec/valid? :clj-storage.spec/only-id-map query)
+        (sql/get-by-id (jdbc/get-connection ds) table-name (:id query))
+        (if (empty? query)
+          (jdbc/execute! ds [(str "select * from " table-name)])
+          (sql/find-by-keys ds table-name query)))))
   
   (delete! [this item]
     (sql/delete! ds table-name item))
@@ -79,19 +102,29 @@
     (spec/assert ::index-params params)
     (jdbc/execute-one! (jdbc/get-connection ds) [(q/add-index table-name index params)]))
 
-  (expire [this seconds params]))
+  (expire [this seconds params]
+    (spec/assert ::expire-seconds seconds)
+    (log/info "Starting a thread to check for expiration for table " table-name)
+    ;; The logged-future will return an exception which otherwise would be swallowed till deref
+    (log/logged-future
+     (while (not-empty? (retrieve-table ds table-name))
+       ;; TODO: config extract
+       (Thread/sleep 30000)
+       (log/debug "Checking for expired rows for table " table-name)
+       (let [delete-before-timestamp (time/minus (time/now) (time/seconds seconds))]
+         (when (and (not-empty? (retrieve-table ds table-name)) (storage/query this ["CREATEDATE < ?" delete-before-timestamp] {}))
+           (storage/delete! this ["CREATEDATE < ?" delete-before-timestamp])))))))
 
 (defn show-tables [ds]
   (with-open [con (jdbc/get-connection ds)]
   (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
-      (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+      (.getTables nil nil `nil (into-array ["TABLE" "VIEW"]))
       (rs/datafiable-result-set ds {}))))
 
 (defn retrieve-table-indices [ds table-name]
   (with-open [con (jdbc/get-connection ds {})]
     (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
         (.getIndexInfo nil nil table-name true false)
-        #_(.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
         (rs/datafiable-result-set ds {}))))
 
 (defn create-sqlite-table [sqlite-ds table-name table-columns]

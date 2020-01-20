@@ -34,10 +34,11 @@
                    "APPEARANCE VARCHAR(32) DEFAULT NULL"
                    "COST INT DEFAULT NULL"
                    "GRADE REAL DEFAULT NULL"
-                   "CREATEDATE TIMESTAMP NOT NULL"])
+                    "CREATEDATE TIMESTAMP NOT NULL"])
 (def secondary-table-name "CLASSIFICATION")
 (def secondary-columns ["NAME VARCHAR(32) UNIQUE"
-                        "GENUS VARCHAR(32)"])
+                        "GENUS VARCHAR(32)"
+                        "CREATEDATE TIMESTAMP NOT NULL"])
 
 
 (against-background [(before :contents (test-db/setup-db))
@@ -74,15 +75,33 @@
                                    (storage/store! fruit-store (zipmap headers ["Banana" "yellow" nil 92.2])) => truthy
                                    (storage/store! fruit-store (zipmap headers ["Peach" nil 139 90.0])) => truthy
                                    (storage/store! fruit-store (zipmap headers ["Orange" "juicy" 89 88.6])) => truthy
-                                   (storage/store! fruit-store (zipmap headers ["Cherry" "red" nil nil])) => truthy)
+                                   (storage/store! fruit-store (zipmap headers ["Cherry" "red" nil nil])) => truthy
+                                   (storage/store! classification-store {:name "Banana" :genus "Musa"})
+                                   (storage/store! classification-store {:name "Orange" :genus "Citrus"})
+                                   ;; Add expiration for classification-store
+                                   (storage/expire classification-store 30 {}))
 
-                             (fact "Query the table with pagination"
+                             (fact "Query the table"
+                                   (count (storage/query fruit-store {} {})) => 5
+                                   (count (storage/query classification-store {} {})) => 2
                                    (count (storage/query fruit-store {:id 1} {})) => 1
                                    (:FRUIT/NAME (first (storage/query fruit-store {:id 1} {}))) => "Apple"
                                    (count (storage/query fruit-store {:FRUIT/APPEARANCE "red"} {})) => 2
                                    (count (storage/query fruit-store ["COST > ?" 80] {})) => 2
                                    (count (storage/query fruit-store ["APPEARANCE is null"] {})) => 1
                                    (count (storage/query fruit-store ["CREATEDATE > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
+
+                             (fact "Query the table with paging"
+                                   (count (storage/query fruit-store {} {:limit 1 :offset 1 :order-by "NAME"})) => 1
+                                   (-> (storage/query fruit-store {} {:limit 1 :offset 1 :order-by "NAME"})
+                                       first
+                                       (dissoc :FRUIT/CREATEDATE)) => {:FRUIT/APPEARANCE "yellow"
+                                                                       :FRUIT/COST nil
+                                                                       :FRUIT/GRADE 92.2
+                                                                       :FRUIT/ID 2
+                                                                       :FRUIT/NAME "Banana"}
+                                   (count (storage/query fruit-store {} {:limit 2 :offset 1 :order-by "NAME"})) => 2)
+                             
 
                              (fact "Test the aggregates"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)
@@ -118,5 +137,9 @@
                                    (storage/delete! fruit-store ["COST > ?" 0]) => {:next.jdbc/update-count 3}
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(2)))
 
-                      (facts "Test the expiration" :slow)
-                      ))
+                      (facts "Test the expiration" :slow
+                             (count (storage/query classification-store {} {})) => 2
+                             (Thread/sleep (* 40 1000))
+                             (count (storage/query classification-store {} {})) => 0
+                             (storage/store! classification-store {:name "Orange" :genus "Citrus"})
+                             (count (storage/query classification-store {} {})) => 1)))
