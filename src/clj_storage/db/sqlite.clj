@@ -39,6 +39,22 @@
             [taoensso.timbre :as log]
             ))
 
+(defn- not-empty? [col]
+  ((comp not empty?) col))
+
+(defn retrieve-tables [ds]
+  (with-open [con (jdbc/get-connection ds {})]
+    (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+        (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+        (rs/datafiable-result-set ds {}))))
+
+(defn retrieve-table [ds table-name]
+  (let [tables
+        (with-open [con (jdbc/get-connection ds {})]
+          (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
+              (.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
+              (rs/datafiable-result-set ds {})))]
+    (filter #(= (:sqlite_master/TABLE_NAME %) table-name) tables)))
 
 (defrecord SqliteStore [ds table-name]
   Store
@@ -88,11 +104,13 @@
     (log/info "Starting a thread to check for expiration for table " table-name)
     ;; The logged-future will return an exception which otherwise would be swallowed till deref
     (log/logged-future
-     (while true
+     (while (not-empty? (retrieve-table ds table-name))
        ;; TODO: config extract
        (Thread/sleep 30000)
        (log/debug "Checking for expired rows for table " table-name)
-       (storage/delete! this ["CREATEDATE < ?" (log/spy (time/minus (time/now) (time/seconds seconds)))])))))
+       (let [delete-before-timestamp (time/minus (time/now) (time/seconds seconds))]
+         (when (and (not-empty? (retrieve-table ds table-name)) (storage/query this ["CREATEDATE < ?" delete-before-timestamp] {}))
+           (storage/delete! this ["CREATEDATE < ?" delete-before-timestamp])))))))
 
 (defn show-tables [ds]
   (with-open [con (jdbc/get-connection ds)]
@@ -104,7 +122,6 @@
   (with-open [con (jdbc/get-connection ds {})]
     (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
         (.getIndexInfo nil nil table-name true false)
-        #_(.getTables nil nil nil (into-array ["TABLE" "VIEW"]))
         (rs/datafiable-result-set ds {}))))
 
 (defn create-sqlite-table [sqlite-ds table-name table-columns]

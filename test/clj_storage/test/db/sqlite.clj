@@ -126,5 +126,8 @@
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(2)))
 
                       (facts "Test the expiration" :slow
-                             (Thread/sleep (* 60 1000))
-                             (count (storage/query classification-store {} {})) => 0)))
+                             (count (storage/query classification-store {} {})) => 2
+                             (Thread/sleep (* 40 1000))
+                             (count (storage/query classification-store {} {})) => 0
+                             (storage/store! classification-store {:name "Orange" :genus "Citrus"})
+                             (count (storage/query classification-store {} {})) => 1)))
