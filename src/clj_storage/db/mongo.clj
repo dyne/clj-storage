@@ -81,12 +81,6 @@
       (mc/remove-by-id mongo-db coll (:id item))
       (mc/remove mongo-db coll item)))
 
-  ;; TODO: delete-all?
-  ;; Maybe move this to DB specific file and not the protocol
-  #_(delete-all! [this]
-    (mc/remove mongo-db coll))
-
-  ;; TODO: remove params?
   (aggregate [collection formula params]
     (mc/aggregate mongo-db coll formula))
 
@@ -96,6 +90,11 @@
 
   (expire [collection seconds params]
     (mc/ensure-index mongo-db coll {:created-at 1} {:expireAfterSeconds seconds})))
+
+;; TODO: delete-all?
+;; Maybe move this to DB specific file and not the protocol
+#_(delete-all! [this]
+               (mc/remove mongo-db coll))
 
 (defn count-items [mongo-store query]
   (or (-> (storage/aggregate mongo-store

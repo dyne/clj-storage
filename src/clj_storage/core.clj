@@ -75,16 +75,21 @@
 
   (aggregate [this formula  params]
     (let [{:keys [map-fn reduce-fn]} (spec/assert ::in-memory-aggregate-formula formula)]
-         (reduce reduce-fn (map map-fn formula))))
+         (reduce reduce-fn (map map-fn formula)))))
 
-  ;; TODO: maybe add as wrapper function?
-  #_(delete-all! [this]
-    (reset! data {}))
+;; TODO: maybe add as wrapper function?
+#_(delete-all! [this]
+               (reset! data {}))
 
-  ;; TODO: add aggregate?
-  #_(count-since [this date-time formula]
-    ;; TODO: date time add
-    (count (filter #(= formula (select-keys % (keys formula))) (vals @data)))))
+;; TODO: add aggregate?
+#_(count-since [this date-time formula]
+               ;; TODO: date time add
+               (count (filter #(= formula (select-keys % (keys formula))) (vals @data))))
+
+;; TODO: implement wrapper function
+#_(defn empty-db-stores! [stores-m]
+    (doseq [col (vals stores-m)]
+      (delete-all! col)))
 
 
 (defn count-items [in-memory-store q]
@@ -95,24 +100,15 @@
                 :reduce-fn +}
                {})))
 
-#_(defn create-memory-store
-  "Create a memory store"
-  ([name]
-   ;; TODO: implement ttl and aggregation
-   (MemoryStore. (atom {name {}}))))
-
-#_(defn create-in-memory-stores
-  [store-names]
-  (let [names (spec/assert ::in-memory-store-names store-names)]
-    (log/spy (zipmap
-              (map #(keyword %) names)
-              (map #(create-memory-store (keyword %)) names)))))
-
+;; TODO: in-mem storage needs some work:
+;; - Revise data structure, is it correct? check aggregations
+;; - implement ttl
+;; - implement aggregation
+;; - create wrapper functions
 (defn create-memory-store
   "Create a memory store"
   ([] (create-memory-store {}))
   ([data]
-   ;; TODO: implement ttl and aggregation
    (MemoryStore. (atom {}))))
 
 (defn create-in-memory-stores [store-names]
@@ -121,10 +117,6 @@
    (repeat (count store-names) (create-memory-store))))
 
 (spec/fdef create-in-memory-stores :args (spec/cat :store-names (spec/coll-of string?)))
-;; TODO
-#_(defn empty-db-stores! [stores-m]
-  (doseq [col (vals stores-m)]
-    (delete-all! col)))
 
 ;; TODO extract conf
 (spec/check-asserts true)

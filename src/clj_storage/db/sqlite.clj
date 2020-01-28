@@ -83,7 +83,7 @@
   ;;TODO: Pagination now works only for list all. Maybe do it also for query
   (query [this query pagination]
     (if (spec/valid? ::pagination pagination)
-      ;; Orger by needed because sql is unordered see https://stackoverflow.com/questions/14468586/efficient-paging-in-sqlite-with-millions-of-records?noredirect=1&lq=1
+      ;; Order by needed because sql is unordered see https://stackoverflow.com/questions/14468586/efficient-paging-in-sqlite-with-millions-of-records?noredirect=1&lq=1
       (jdbc/execute! ds [(str "select * from " table-name " ORDER BY " (:order-by pagination) " LIMIT " (:limit pagination) " OFFSET " (:offset pagination))])
       (if (spec/valid? :clj-storage.spec/only-id-map query)
         (sql/get-by-id (jdbc/get-connection ds) table-name (:id query))
