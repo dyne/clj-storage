@@ -81,7 +81,7 @@
                                    ;; Add expiration for classification-store
                                    (storage/expire classification-store 30 {}))
 
-                             (fact "Query the table with pagination"
+                             (fact "Query the table"
                                    (count (storage/query fruit-store {} {})) => 5
                                    (count (storage/query classification-store {} {})) => 2
                                    (count (storage/query fruit-store {:id 1} {})) => 1
@@ -90,6 +90,18 @@
                                    (count (storage/query fruit-store ["COST > ?" 80] {})) => 2
                                    (count (storage/query fruit-store ["APPEARANCE is null"] {})) => 1
                                    (count (storage/query fruit-store ["CREATEDATE > ?" (java.util.Date. "January 1, 1970, 00:00:00 GMT")] {})) => 5)
+
+                             (fact "Query the table with paging"
+                                   (count (storage/query fruit-store {} {:limit 1 :offset 1 :order-by "NAME"})) => 1
+                                   (-> (storage/query fruit-store {} {:limit 1 :offset 1 :order-by "NAME"})
+                                       first
+                                       (dissoc :FRUIT/CREATEDATE)) => {:FRUIT/APPEARANCE "yellow"
+                                                                       :FRUIT/COST nil
+                                                                       :FRUIT/GRADE 92.2
+                                                                       :FRUIT/ID 2
+                                                                       :FRUIT/NAME "Banana"}
+                                   (count (storage/query fruit-store {} {:limit 2 :offset 1 :order-by "NAME"})) => 2)
+                             
 
                              (fact "Test the aggregates"
                                    (vals (storage/aggregate fruit-store nil {:select "COUNT (*)"})) => '(5)
