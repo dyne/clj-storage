@@ -4,7 +4,7 @@
 
   :license {:author "Dyne.org Foundation"
             :email "foundation@dyne.org"
-            :year 2017
+            :year 2020
             :key "gpl-3.0"}
 
   :dependencies [[org.clojure/clojure "1.10.1"]
@@ -16,20 +16,27 @@
                  [org.clojars.dyne/monger "3.2.0-SNAPSHOT"]
                  [cheshire "5.3.1"]
 
-                 ;; file storage
-                 [com.taoensso/nippy "2.14.0"]
-
                  ;; redis
                  [com.taoensso/carmine "2.19.1"]
 
                  ;; sql
                  [seancorfield/next.jdbc "1.0.13"]
                  ;; driver for sqlite 
-                 [org.xerial/sqlite-jdbc "3.30.1"]]
+                 [org.xerial/sqlite-jdbc "3.30.1"]
+
+                 ;; config
+                 [environ "1.1.0"]
+                 [lein-environ "1.1.0"]]
 
   :source-paths ["src" "test"]
   :resource-paths ["resources" "test-resources"]
   :aliases {"test" ["midje"]
             "test-basic" ["midje" ":config" "test-resources/fast-tests.config"]}
   :profiles {:dev {:dependencies [[midje "1.9.9"]]
-                   :plugins [[lein-midje "3.2"]]}})
+                   :plugins [[lein-midje "3.2"]
+                             [lein-environ "1.1.0"]]
+                   :env {:spec-asserts "true"
+                         :spec-instruments "true"
+                         :sqlite-expire-millis "40000"
+                         :redis-atomic-retries "50"
+                         :pagination-max-per-page "100"}}})

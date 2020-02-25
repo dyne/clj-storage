@@ -25,6 +25,7 @@
 (ns clj-storage.db.sqlite
   (:require [clj-storage.core :as storage :refer [Store]]
             [clj-storage.db.sqlite.queries :as q]
+            [clj-storage.config :as conf]
 
             [clj-storage.spec]
             [clojure.spec.alpha :as spec]
@@ -108,8 +109,7 @@
     ;; The logged-future will return an exception which otherwise would be swallowed till deref
     (log/logged-future
      (while (not-empty? (retrieve-table ds table-name))
-       ;; TODO: config extract
-       (Thread/sleep 30000)
+       (Thread/sleep (log/spy (conf/sqlite-expire-millis (conf/create-config))))
        (log/debug "Checking for expired rows for table " table-name)
        (let [delete-before-timestamp (time/minus (time/now) (time/seconds seconds))]
          (when (and (not-empty? (retrieve-table ds table-name)) (storage/query this ["CREATEDATE < ?" delete-before-timestamp] {}))
@@ -136,6 +136,7 @@
                                       :table-name ::table-name
                                       :table-columns ::table-columns))
 
-;; TODO extract variable
-(ts/instrument)
-(spec/check-asserts true)
+(when (conf/spec-instrument (conf/create-config))
+  (ts/instrument))
+
+(spec/check-asserts (conf/spec-asserts (conf/create-config)))
