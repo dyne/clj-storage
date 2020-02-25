@@ -24,7 +24,7 @@
 (ns clj-storage.test.db.redis.test-db
   (:require [taoensso.carmine :as car :refer (wcar)]
             [clj-storage.db.redis :refer [wcar* create-redis-database]]
-            [cheshire.core :as json]
+            [clj-storage.config :as conf]
             [taoensso.timbre :as log]))
 
 ;; Redis holds by default up to 16 dbs. First one here is indicated by the /0

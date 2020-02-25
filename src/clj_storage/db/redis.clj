@@ -28,6 +28,7 @@
             [clj-storage.spec]
             
             [clj-storage.core :as storage :refer [Store]]
+            [clj-storage.config :as conf]
             
             [taoensso.timbre :as log]))
 
@@ -42,7 +43,7 @@
   (update! [database query update-fn]
     (if (spec/valid? :clj-storage.spec/only-key-map query)
       (let [k (:key query)]
-        (wcar* (:conn database) (car/atomic {} 100 ; Retry <= 100 times on failed optimistic lock, or throw ex
+        (wcar* (:conn database) (car/atomic {} (conf/redis-atomic-retries (conf/create-config)) ; Retry <= 100 times on failed optimistic lock, or throw ex
 
                                             (car/watch k) ; Watch key for changes
                                             (let [;; You can grab the value of the watched key using
@@ -56,7 +57,7 @@
                                               (car/set k (update-fn curr-val))
                                               (car/get k)))))
       (when (spec/valid? :clj-storage.spec/multiple-keys query)
-        (wcar* (:conn database) (car/atomic {} 100 ; Retry <= 100 times on failed optimistic lock, or throw ex
+        (wcar* (:conn database) (car/atomic {} (conf/redis-atomic-retries (conf/create-config)) ; Retry <= 100 times on failed optimistic lock, or throw ex
 
                                             (car/watch (:keys query)) ; Watch key for changes
                                             (let [;; You can grab the value of the watched key using
@@ -108,5 +109,4 @@
     {:store (RedisStore. conn)
      :conn conn}))
 
-;; TODO extract conf
-(spec/check-asserts true)
+(spec/check-asserts (conf/spec-asserts (conf/create-config)))

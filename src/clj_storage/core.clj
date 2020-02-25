@@ -27,6 +27,8 @@
             [clojure.spec.alpha :as spec]
             [clojure.spec.test.alpha :as ts]
 
+            [clj-storage.config :as conf]
+            
             [taoensso.timbre :as log]))
 
 (defprotocol Store
@@ -118,7 +120,7 @@
 
 (spec/fdef create-in-memory-stores :args (spec/cat :store-names (spec/coll-of string?)))
 
-;; TODO extract conf
-(spec/check-asserts true)
-;; TODO extract variable
-(ts/instrument)
+(spec/check-asserts (conf/spec-asserts (conf/create-config)))
+
+(when (conf/spec-instrument (conf/create-config))
+  (ts/instrument))

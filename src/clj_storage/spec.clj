@@ -22,10 +22,10 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns clj-storage.spec
-  (:require [clojure.spec.alpha :as spec]))
+  (:require [clojure.spec.alpha :as spec]
+            [clj-storage.config :as conf]))
 
-;; TODO: extract config
-(def MAX-PER-PAGE 100)
+(def MAX-PER-PAGE (conf/pagination-max-per-page (conf/create-config)))
 
 (spec/def ::page (spec/int-in 0 Integer/MAX_VALUE))
 (spec/def ::per-page (spec/int-in 1 MAX-PER-PAGE))
