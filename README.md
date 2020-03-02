@@ -7,8 +7,7 @@ This library is a minimalist clojure protocol abstraction over databases. The av
 		alt="software by Dyne.org"
 			title="software by Dyne.org" class="pull-right"></a>
 
-[Protocol](#Protocol) | [Implementations](#Implementations) | [Running the tests](#Running-the-tests) | [Todos](#Todos) | [Acknowledgements](#Acknowledgements) | [License](#License) | [change log](https://github.com/Commonfare-net/clj-storage/blob/master/CHANGELOG.markdown) 
-
+[Protocol](#Protocol) | [Implementations](#Implementations) | [Running the tests](#Running-the-tests) | [Todos](#Todos) | [Acknowledgements](#Acknowledgements) | [License](#License) | [change log](https://github.com/Commonfare-net/clj-storage/blob/feature/full-abstraction/CHANGELOG.markdown)
 [![Build Status](https://travis-ci.org/Commonfare-net/clj-storage.svg?branch=master)](https://travis-ci.org/Commonfare-net/clj-storage)
 [![Clojars Project](https://img.shields.io/clojars/v/socia)](https://clojars.org/org.clojars.dyne/clj-storage)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
@@ -35,6 +34,21 @@ Here below is the abstract protocol with all functions that may be implemented t
     "Expire items of this storage after seconds"))
 ```
 ## Implementation
+
+All implementations can be found under src/clj_storage/db. All implementation add the field created-at so it can be used for expiration. Since there is one protocol with a number of DB paradigms, there are slight differences in each implementation. In particular:
+
+### Redis
+- The core Redis Key Value functionality is implemented
+- Since paging in redis is available only for paricular types, it is currently not supported
+- Some particular to Redis functions are available, namely: count-keys , get-all-keys, count-sorted-set.
+
+### Mongo
+- Some particular to Mongo functions are available, namely: count-items, count-since.
+
+### SQLite
+- The SQLite implementation deals with expiration programmatically
+- Pagination works for list-all but not for query atm
+- Some particular to Mongo functions are available, namely: show-tables, retrieve-table-indices.
 
 ## Running the tests
 
