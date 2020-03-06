@@ -35,11 +35,11 @@ Here below is the abstract protocol with all functions that may be implemented t
 ```
 ## Implementation
 
-All implementations can be found under src/clj_storage/db. All implementation add the field created-at so it can be used for expiration. Since there is one protocol with a number of DB paradigms, there are slight differences in each implementation. In particular:
+All implementations can be found under src/clj_storage/db. All implementations add the field _created-at_ so it can be used for expiration. The protocol is implemented for every db, however since there is one protocol with a number of DB paradigms, there are slight differences in each implementation. In particular:
 
 ### Redis
 - The core Redis Key Value functionality is implemented
-- Since paging in redis is available only for paricular types, it is currently not supported
+- Since paging on redis is available only for paricular types, it is currently not supported
 - Some particular to Redis functions are available, namely: count-keys , get-all-keys, count-sorted-set.
 
 ### Mongo
