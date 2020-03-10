@@ -109,7 +109,7 @@
 
 (defn count-since [mongo-store dt query]
   (or (-> (storage/aggregate mongo-store
-                             [{"$match" (merge query {:timestamp {"$gt" dt}})}
+                             [{"$match" (merge query {:created-at {"$gt" dt}})}
                               {"$group" {:_id nil
                                          :count {"$sum" 1}}}]
                              {})
