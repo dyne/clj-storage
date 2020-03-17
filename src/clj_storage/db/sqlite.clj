@@ -115,6 +115,16 @@
          (when (and (not-empty? (retrieve-table ds table-name)) (storage/query this ["CREATEDATE < ?" delete-before-timestamp] {}))
            (storage/delete! this ["CREATEDATE < ?" delete-before-timestamp])))))))
 
+(defn count-since [table datetime formula]
+  (let [query (str "SELECT * FROM "
+                   (:table-name table)
+                   " WHERE createdate > ? ")
+        formula-part (log/spy (reduce str (map #(str "AND " (name %) " = ? ") (keys (log/spy formula)))))
+        end-query (into [] (concat [(str query formula-part ";") datetime]
+                                   (vals formula)))]
+    (log/info "END QUERY " end-query)
+    (sql/query (:ds table) end-query)))
+
 (defn show-tables [ds]
   (with-open [con (jdbc/get-connection ds)]
   (-> (.getMetaData con) ; produces java.sql.DatabaseMetaData
