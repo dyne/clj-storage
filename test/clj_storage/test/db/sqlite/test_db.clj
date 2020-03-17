@@ -22,8 +22,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 (ns clj-storage.test.db.sqlite.test-db
-  (:require [clj-storage.db.sqlite :as db]
-            [clj-storage.db.sqlite.queries :as q]
+  (:require [clj-storage.db.sqlite.queries :as q]
             
             [next.jdbc :as jdbc]
             [taoensso.timbre :as log]))

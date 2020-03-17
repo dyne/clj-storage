@@ -136,6 +136,18 @@
                                       :table-name ::table-name
                                       :table-columns ::table-columns))
 
+(defn create-sqlite-tables [sqlite-ds name-param-m name-columns-m]
+  (let [tables (atom {})]
+    (doall (map #(let [table-name (key %)
+                       columns (val %)
+                       params (get name-param-m table-name)
+                       storage (create-sqlite-table sqlite-ds table-name columns)]
+                   (swap! tables (fn [t] (assoc t table-name storage)))
+                   (when (:expireAfterSeconds params)
+                     (storage/expire storage (:expireAfterSeconds params) {})))
+                name-columns-m))
+    @tables))
+
 (when (conf/spec-instrument (conf/create-config))
   (ts/instrument))
 
