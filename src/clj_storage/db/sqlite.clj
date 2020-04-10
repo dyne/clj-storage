@@ -64,22 +64,26 @@
     (let [item-with-timestamp (assoc item :createdate (java.util.Date.))]
       (sql/insert! (jdbc/get-connection ds) table-name item-with-timestamp)))
 
-  (update! [this query update-fn]
+  (update! [this q update-fn]
     ;; If it is a prepared statement should be a vector
     (if (spec/valid? ::update-prepared-statement update-fn)
-      (jdbc/execute! (jdbc/get-connection ds)
-                     [(cond-> "update "
-                        true (str 
-                              table-name
-                              " set "
-                              (apply str update-fn)
-                              " where ")
-                        (spec/valid? ::update-query-vector query) (str (first query))
-                        (spec/valid? ::update-query-map query) (str (key query)))
-                      (if (spec/valid? ::update-query-vector query)
-                        ((partial apply identity) (rest ["GRADE >= ?" 90]))
-                        ((partial apply identity) (val query)))])
-      (sql/update! ds table-name update-fn query)))
+      (let [query-var (str (if (spec/valid? ::update-query-vector q)
+                             (str (first q))
+                             (name (first (keys q))))
+                           " = ?")
+            query-val (if (spec/valid? ::update-query-vector q)
+                        ((partial apply identity) (rest q))
+                        (first (vals q)))]
+        (jdbc/execute! (jdbc/get-connection ds)
+                       [(cond-> "update "
+                          true (str 
+                                table-name
+                                " set "
+                                (apply str update-fn)
+                                " where "
+                                query-var))
+                        query-val]))
+      (sql/update! ds table-name update-fn q)))
 
   ;;TODO: Pagination now works only for list all. Maybe do it also for query
   (query [this query pagination]
