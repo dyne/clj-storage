@@ -67,10 +67,10 @@
   (update! [this q update-fn]
     ;; If it is a prepared statement should be a vector
     (if (spec/valid? ::update-prepared-statement update-fn)
-      (let [query-var (str (if (spec/valid? ::update-query-vector q)
-                             (str (first q))
-                             (name (first (keys q))))
-                           " = ?")
+      (let [query-var (if (spec/valid? ::update-query-vector q)
+                        (str (first q))
+                        (str (name (first (keys q))) "= ?"))
+            
             query-val (if (spec/valid? ::update-query-vector q)
                         ((partial apply identity) (rest q))
                         (first (vals q)))]
