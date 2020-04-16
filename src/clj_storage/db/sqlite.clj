@@ -35,7 +35,9 @@
             [next.jdbc.sql :as sql]
             [next.jdbc.result-set :as rs]
 
-            [clj-time.core :as time]
+            [clj-time
+             [core :as time]
+             [coerce :as c]]
             
             [taoensso.timbre :as log]
             ))
@@ -113,21 +115,21 @@
     ;; The logged-future will return an exception which otherwise would be swallowed till deref
     (log/logged-future
      (while (not-empty? (retrieve-table ds table-name))
-       (Thread/sleep (log/spy (conf/sqlite-expire-millis (conf/create-config))))
+       (Thread/sleep (conf/sqlite-expire-millis (conf/create-config)))
        (log/debug "Checking for expired rows for table " table-name)
        (let [delete-before-timestamp (time/minus (time/now) (time/seconds seconds))]
          (when (and (not-empty? (retrieve-table ds table-name)) (storage/query this ["CREATEDATE < ?" delete-before-timestamp] {}))
-           (storage/delete! this ["CREATEDATE < ?" delete-before-timestamp])))))))
+           (log/debug "Will delete some expired entries from " table-name)
+           (storage/delete! this ["CREATEDATE < ?" (c/to-long delete-before-timestamp)])))))))
 
 (defn count-since [table datetime formula]
-  (let [query (str "SELECT * FROM "
+  (let [query (str "SELECT COUNT(*) FROM "
                    (:table-name table)
                    " WHERE createdate > ? ")
-        formula-part (log/spy (reduce str (map #(str "AND " (name %) " = ? ") (keys (log/spy formula)))))
-        end-query (into [] (concat [(str query formula-part ";") datetime]
+        formula-part (reduce str (map #(str "AND " (name %) " = ? ") (keys formula)))
+        end-query (into [] (concat [(str query formula-part ";") (c/to-sql-time datetime)]
                                    (vals formula)))]
-    (log/info "END QUERY " end-query)
-    (sql/query (:ds table) end-query)))
+    (last (first (first (sql/query (:ds table) end-query))))))
 
 (defn show-tables [ds]
   (with-open [con (jdbc/get-connection ds)]
