@@ -126,9 +126,13 @@
   (let [query (str "SELECT COUNT(*) FROM "
                    (:table-name table)
                    " WHERE createdate > ? ")
-        formula-part (reduce str (map #(str "AND " (name %) " = ? ") (keys formula)))
+        formula-part (reduce str (map #(if (nil? (get formula %))
+                                         (str "AND " (name %) " IS NULL ")
+                                         (str "AND " (name %) " = ? "))
+                                      (keys formula)))
         end-query (into [] (concat [(str query formula-part ";") (c/to-sql-time datetime)]
-                                   (vals formula)))]
+                                   (remove nil? (vals formula))))]
+    (log/debug "COUNT SINCE QUERY " end-query)
     (last (first (first (sql/query (:ds table) end-query))))))
 
 (defn show-tables [ds]
