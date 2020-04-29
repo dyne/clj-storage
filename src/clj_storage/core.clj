@@ -3,7 +3,7 @@
 ;; part of Decentralized Citizen Engagement Technologies (D-CENT)
 ;; R&D funded by the European Commission (FP7/CAPS 610349)
 
-;; Copyright (C) 2017 Dyne.org foundation
+;; Copyright (C) 2017- Dyne.org foundation
 
 ;; Sourcecode designed, written and maintained by
 ;; Aspasia Beneti  <aspra@dyne.org>
@@ -21,71 +21,106 @@
 ;; You should have received a copy of the GNU Affero General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-(ns clj-storage.core)
+(ns clj-storage.core
+  (:require [clj-storage.spec]
+
+            [clojure.spec.alpha :as spec]
+            [clojure.spec.test.alpha :as ts]
+
+            [clj-storage.config :as conf]
+            
+            [taoensso.timbre :as log]))
 
 (defprotocol Store
-  (store! [e k item]
-    "Store item against the key k")
-  (store-and-create-id! [e item]
-    "Store item and return with :_id created by mongo")
-  (update! [e k update-fn]
-    "Update the item found using key k by running the update-fn on it and storing it")
-  (fetch [e k]
-    "Retrieve item based on primary id")
-  (query [e query]
-    "Items are returned using a query map")
-  (list-per-page [e query page per-page]
-    "List all items in a collection using pagination. Per page is the number of items per page and page is the number of page. Items are sorted by _id")
-  (delete! [e k]
-    "Delete item based on primary id")
-  (delete-all! [e]
-    "Delete all items from a coll")
-  (aggregate [e formula]
-    "Process data records and return computed results")
-  (count-since [e date-time formula]
-    "Count the number of documents that since a date-time and after applying a formula. {} for an empty formula. This is meant only for collections that contain a `created-at` field.")
-  (count* [e params]
-    "Count the number of documents after applying a formula. {} for an empty formula.")) 
+  (store! [s item]
+    "Store an item to storage s")
+  (update! [s query update-fn]
+    "Update all items found by with the update-fn, specific to the implementation")
+  (query [s query pagination]
+    "Find one or more items given a query map (does a fetch when query map is only id). Pagination will be used if not empty")
+  (delete! [s item]
+    "Delete item from a storage s")
+  (aggregate [s formula params]
+    "Process data aggregate and return computed results")
+  (add-index [s index params]
+    "Add an index to a storage s. The map parameter can differ per db implementation")
+  (expire [s seconds params]
+    "Expire items of this storage after seconds")) 
 
 (defrecord MemoryStore [data]
   Store
-  (store! [this k item]
-    (do (swap! data assoc (k item) item)
-        item))
+  (store! [this item]
+    (let [id (or (:id item)
+                 (str (java.util.UUID/randomUUID)))]
+      (swap! data assoc-in [id] (assoc item :id id))
+      item))
 
-  (update! [this k update-fn]
-    (when-let [item (@data k)]
-      (let [updated-item (update-fn item)]
-        (swap! data assoc k updated-item)
-        updated-item)))
+  (update! [this q update-fn]
+    (let [items (query this q {})]
+      (doseq [item items]
+        (swap! data update-in [(:id item)] update-fn))))
 
-  (fetch [this k] (@data k))
+  (query [this query pagination]
+    (if (spec/valid? :clj-storage.spec/only-id-map query)
+      (-> @data (:id query))
+      (let [results (filter #(= query (select-keys % (keys query))) (vals @data))]
+        (if-not (empty? pagination)
+          (when (spec/valid? :clj-storage.db.mongo/pagination pagination)
+            (let [max (* (:page pagination (:per-page pagination)))
+                  d (- max (:per-page pagination))]
+              (take (:per-page pagination)
+                    (drop d results))))
+          results))))
 
-  (query [this query]
-    (filter #(= query (select-keys % (keys query))) (vals @data)))
+  (delete! [this item]
+    (swap! data dissoc (:id item)))
 
-  (delete! [this k]
-    (swap! data dissoc k))
+  (aggregate [this formula  params]
+    (let [{:keys [map-fn reduce-fn]} (spec/assert ::in-memory-aggregate-formula formula)]
+         (reduce reduce-fn (map map-fn formula)))))
 
-  (delete-all! [this]
-    (reset! data {}))
+;; TODO: maybe add as wrapper function?
+#_(delete-all! [this]
+               (reset! data {}))
 
-  (count-since [this date-time formula]
-    ;; TODO: date time add
-    (count (filter #(= formula (select-keys % (keys formula))) (vals @data)))))
+;; TODO: add aggregate?
+#_(count-since [this date-time formula]
+               ;; TODO: date time add
+               (count (filter #(= formula (select-keys % (keys formula))) (vals @data))))
 
+;; TODO: implement wrapper function
+#_(defn empty-db-stores! [stores-m]
+    (doseq [col (vals stores-m)]
+      (delete-all! col)))
+
+
+(defn count-items [in-memory-store q]
+  (let [results (query in-memory-store q {})]
+    ;; TODO: this is all wrong, to be revised later
+    (aggregate (MemoryStore. results)
+               {:map-fn #(count (conj [] %))
+                :reduce-fn +}
+               {})))
+
+;; TODO: in-mem storage needs some work:
+;; - Revise data structure, is it correct? check aggregations
+;; - implement ttl
+;; - implement aggregation
+;; - create wrapper functions
 (defn create-memory-store
   "Create a memory store"
   ([] (create-memory-store {}))
   ([data]
-   ;; TODO: implement ttl and aggregation
-   (MemoryStore. (atom data))))
+   (MemoryStore. (atom {}))))
 
 (defn create-in-memory-stores [store-names]
   (zipmap
    (map #(keyword %) store-names)
    (repeat (count store-names) (create-memory-store))))
 
-(defn empty-db-stores! [stores-m]
-  (doseq [col (vals stores-m)]
-    (delete-all! col)))
+(spec/fdef create-in-memory-stores :args (spec/cat :store-names (spec/coll-of string?)))
+
+(spec/check-asserts (conf/spec-asserts (conf/create-config)))
+
+(when (conf/spec-instrument (conf/create-config))
+  (ts/instrument))
