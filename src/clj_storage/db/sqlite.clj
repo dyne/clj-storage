@@ -132,7 +132,7 @@
                                       (keys formula)))
         end-query (into [] (concat [(str query formula-part ";") (c/to-sql-time datetime)]
                                    (remove nil? (vals formula))))]
-    (log/debug "COUNT SINCE QUERY " end-query)
+    (log/trace "COUNT SINCE QUERY " end-query)
     (last (first (first (sql/query (:ds table) end-query))))))
 
 (defn show-tables [ds]
