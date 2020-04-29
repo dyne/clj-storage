@@ -1,4 +1,4 @@
-(defproject org.clojars.dyne/clj-storage "1.0.0"
+(defproject org.clojars.dyne/clj-storage "1.1.0-SNAPSHOT"
   :description "Minimal storage library based on an abstraction which helps seamlessly switching between DBs"
   :url "https://github.com/Commonfare-net/clj-storage"
   :license {:author "Dyne.org Foundation"
